@@ -464,9 +464,9 @@ class SteamVR(Navigator):
 					,'camera'	: 'c'
 					,'restart'	: viz.KEY_HOME
 					,'home'		: viz.KEY_HOME
-					,'utility'	: ' '
-					,'reset'	: steamvr.BUTTON_GRIP	#1
-					,'showMenu' : steamvr.BUTTON_MENU	#0
+					,'utility'	: steamvr.BUTTON_TRIGGER	#2
+					,'reset'	: steamvr.BUTTON_GRIP		#1
+					,'showMenu' : steamvr.BUTTON_MENU		#0
 					,'down'		: 2
 					,'orient'	: 3
 					,'up'		: 4
@@ -534,28 +534,31 @@ class SteamVR(Navigator):
 				controller.line = viz.endLayer(parent=controller.model)
 				controller.line.disable([viz.INTERSECTION, viz.SHADOW_CASTING])
 				controller.line.visible(True)
-				
-				# Create highlighter tool for controller
-#				import tools
-				from tools import highlighter
-				self.HIGHLIGHTER = highlighter.Highlighter()
-				self.HIGHLIGHTER.setParent(controller.model)
-#				link.preTrans([0, -0.3, 1.0])
-				self.HIGHLIGHTER.getHighlight().setColor(viz.CYAN)
-#				highlightLink = viz.link(self.getRightController().link,self.highlightTool)
-				def updateHighlightTool(tool):
-					tool.highlight()
-				self.HIGHLIGHTER.setUpdateFunction(updateHighlightTool)
-				
-				
-				
+																		
 				# Log controller name
 				viz.logNotice(controller.getName())
 				
 				# Display joystick information in config window
 				vizconfig.register(controller)
 				
-				
+			# Create highlighter tool for right ontroller
+			from tools import highlighter
+			from tools import ray_caster
+			ray = ray_caster.Simple3DRay(0.001)
+			ray.setColor(viz.CYAN)
+			rayCaster = ray_caster.RayCaster()
+			rayCaster.setIntersectAll(False)
+			rayCaster.setStartingOffset([0,0,0])
+			rayCaster.setRay(ray)
+			self.HIGHLIGHTER = highlighter.Highlighter()
+			self.HIGHLIGHTER.setRayCaster(rayCaster)
+			self.HIGHLIGHTER.setParent(self.RIGHT_CONTROLLER.model)
+#				link.preTrans([0, -0.3, 1.0])
+			self.HIGHLIGHTER.getHighlight().setColor(viz.CYAN)
+#				highlightLink = viz.link(self.getRightController().link,self.highlightTool)
+#			def updateHighlightTool(tool):
+#				tool.highlight()
+#			self.HIGHLIGHTER.setUpdateFunction(updateHighlightTool)						
 				# Setup task for triggering jumps using controller
 #				viztask.schedule(JumpTask(controller))
 
@@ -831,7 +834,9 @@ if __name__ == '__main__':
 	viz.mouse.setTrap()
 
 	# Add environment
-	viz.addChild('maze.osgb')
+	maze = viz.addChild('maze.osgb')
+	maze.hint(viz.OPTIMIZE_INTERSECT_HINT)
+	maze.disable(viz.SHADOW_CASTING)
 	
 	vizconfig.getConfigWindow().setWindowVisible(True)
 	
