@@ -10,6 +10,7 @@ import vizact
 import vizconfig
 #import oculus_08 as oculus
 import oculus
+import steamvr
 import mathlite
 
 # Navigator Base Class
@@ -135,9 +136,14 @@ class Navigator(object):
 
 	def updateView(self):
 		pass
-	
-	
+		
 	def setAsMain(self):		
+		pass
+		
+	def getLeftController(self):
+		pass
+		
+	def getRightController(self):
 		pass
 		
 
@@ -446,6 +452,167 @@ class Oculus(Navigator):
 		vizact.ontimer(0,self.updateView)
 		vizact.onkeyup(self.KEYS['reset'], self.reset)
 		
+class SteamVR(Navigator):
+	def __init__(self):		
+		super(self.__class__,self).__init__()
+		
+	# --Override Key commands
+		self.KEYS = { 'forward'	: 'w'
+					,'back' 	: 's'
+					,'left' 	: 'a'
+					,'right'	: 'd'
+					,'camera'	: 'c'
+					,'restart'	: viz.KEY_HOME
+					,'home'		: viz.KEY_HOME
+					,'utility'	: ' '
+					,'reset'	: steamvr.BUTTON_GRIP	#1
+					,'showMenu' : steamvr.BUTTON_MENU	#0
+					,'down'		: 2
+					,'orient'	: 3
+					,'up'		: 4
+					,'mode'		: 5
+					,'builder'	: 6
+					,'walk'		: 7
+					,'angles'	: 8
+					,'road'		: 10
+					,'esc'		: 999
+					,'slideFar'	: 0
+					,'slideNear': 180
+					,'env'		: '-'
+					,'grid'		: '-'
+					,'snapMenu'	: viz.KEY_CONTROL_L
+					,'interact' : steamvr.BUTTON_TRIGGER
+					,'rotate'	: viz.MOUSEBUTTON_RIGHT
+					,'proxi'	: 'p'
+					,'viewer'	: 'o'
+					,'collide'	: 'c'
+					,'stereo' 	: 'm'
+					,'hand'		: 'h'
+					,'capslock'	: viz.KEY_CAPS_LOCK
+		}		
+		
+		# Link navigation node to main view
+#		self.NODE = viz.addGroup()
+#		self.VIEW_LINK = viz.link(self.NODE, self.VIEW)
+		
+		# --add oculus as HMD
+		self.hmd = steamvr.HMD()
+		
+		if not self.hmd.getSensor():
+			viz.logError('** ERROR: Failed to detect SteamVR HMD')
+		else:
+			# Reset HMD orientation
+			self.hmd.getSensor().reset()
+
+			# Setup navigation node and link to main view
+#			self.NODE = viz.addGroup()
+#			self.VIEW_LINK = viz.link(self.NODE, viz.VIEW)
+			self.VIEW_LINK.preMultLinkable(self.hmd.getSensor())
+
+#			# --Apply user profile eye height to view
+
+			viz.logNotice('SteamVR IPD:', self.hmd.getIPD())
+			viz.logNotice('SteamVR hidden area mesh visible:', self.hmd.getHiddenAreaMeshVisible())
+			
+			controllerList = steamvr.getControllerList()
+			self.LEFT_CONTROLLER = controllerList[0]
+			self.RIGHT_CONTROLLER = controllerList[1]
+			
+			# Add controllers
+			for controller in controllerList:
+
+				# Create model for controller
+				controller.model = controller.addModel(parent=self.getNode())
+				controller.model.disable(viz.INTERSECTION)
+				controller.link = viz.link(controller, controller.model)
+
+				# Create pointer line for controller
+				viz.startLayer(viz.LINES)
+				viz.vertexColor(viz.CYAN)
+				viz.vertex([0,0,0])
+				viz.vertex([0,0,100])
+				controller.line = viz.endLayer(parent=controller.model)
+				controller.line.disable([viz.INTERSECTION, viz.SHADOW_CASTING])
+				controller.line.visible(True)
+				
+				# Create highlighter tool for controller
+#				import tools
+				from tools import highlighter
+				self.HIGHLIGHTER = highlighter.Highlighter()
+				self.HIGHLIGHTER.setParent(controller.model)
+#				link.preTrans([0, -0.3, 1.0])
+				self.HIGHLIGHTER.getHighlight().setColor(viz.CYAN)
+#				highlightLink = viz.link(self.getRightController().link,self.highlightTool)
+				def updateHighlightTool(tool):
+					tool.highlight()
+				self.HIGHLIGHTER.setUpdateFunction(updateHighlightTool)
+				
+				
+				
+				# Log controller name
+				viz.logNotice(controller.getName())
+				
+				# Display joystick information in config window
+				vizconfig.register(controller)
+				
+				
+				# Setup task for triggering jumps using controller
+#				viztask.schedule(JumpTask(controller))
+
+	def getHighlighter(self):
+		return self.HIGHLIGHTER
+			
+	def getLeftController(self):
+		return self.LEFT_CONTROLLER
+		
+	def getRightController(self):
+		return self.RIGHT_CONTROLLER
+		
+	def valid(self):
+		if not self.hmd.getSensor().valid:
+			return False
+		else: 
+			return True
+		
+	# Setup functions				
+	def reset(self):
+		super(self.__class__,self).reset()
+		self.hmd.getSensor().reset()
+		
+	def updateView(self):
+		yaw,pitch,roll = self.VIEW_LINK.getEuler()
+		m = viz.Matrix.euler(yaw,0,0)
+		dm = viz.getFrameElapsed() * self.MOVE_SPEED
+		x,z = self.getLeftController().getTrackpad()
+		y = self.getRightController().getTrackpad()[1]
+		self.NODE.setPosition([x * dm, y * dm, z * dm], viz.REL_PARENT)
+		
+#		if viz.key.isDown(self.KEYS['forward']) and self.CAN_STRAFE:
+#			m.preTrans([0,0,dm])
+#		if viz.key.isDown(self.KEYS['back']) and self.CAN_STRAFE:
+#			m.preTrans([0,0,-dm])
+#		if viz.key.isDown(self.KEYS['left']) and self.CAN_STRAFE:
+#			m.preTrans([-dm * self.STRAFE_SPEED,0,0])
+#		if viz.key.isDown(self.KEYS['right']) and self.CAN_STRAFE:
+#			m.preTrans([dm * self.STRAFE_SPEED,0,0])
+#		if viz.key.isDown(self.KEYS['up']) and self.CAN_ELEVATE:
+#			m.preTrans([0,dm,0])
+#		if viz.key.isDown(self.KEYS['down']) and self.CAN_ELEVATE:
+#			m.preTrans([0,-dm,0])
+#		self.NODE.setPosition(m.getPosition(), viz.REL_PARENT)
+		
+	def setAsMain(self):
+		self.MOVE_SPEED = 2.0	
+		
+		vizact.ontimer(0,self.updateView)
+		vizact.onsensordown(self.getLeftController(), self.KEYS['reset'], self.reset) 
+		vizact.onsensordown(self.getRightController(), self.KEYS['reset'], self.reset) 
+				
+	def IntersectController(self, controller):
+		"""Perform intersection using controller"""
+		line = controller.model.getLineForward(viz.ABS_GLOBAL, length=100.0)
+		return viz.intersect(line.begin, line.end)
+
 
 class Joyculus(Navigator):
 	def __init__(self):		
@@ -613,12 +780,22 @@ def checkJoystick():
 		return True
 	else:
 		return False
+		
+def checkSteamVR():
+	hmd = steamvr.HMD()
+	if not hmd.getSensor():
+		return False
+	return True
 
 def getNavigator():
+	steamVRConnected = checkSteamVR()
 	joystickConnected = checkJoystick()
 	oculusConnected = checkOculus()
 	
-	if oculusConnected and joystickConnected:
+	if steamVRConnected:
+		nav = SteamVR()	
+		nav.getRightController().line.visible(False)
+	elif oculusConnected and joystickConnected:
 		nav = Joyculus()
 	elif joystickConnected:
 		nav = Joystick()
@@ -636,7 +813,7 @@ if __name__ == '__main__':
 	# Run scene
 	viz.setMultiSample(8)
 	viz.setOption('viz.dwm_composition',viz.OFF)
-	viz.go()
+	viz.go()	
 	
 	nav = getNavigator()
  
@@ -645,9 +822,22 @@ if __name__ == '__main__':
 		print nav.getPosition()
 	vizact.onkeyup(' ',printPos)
 	
+	viz.MainView.getHeadLight().disable()
+	sky_light = viz.addDirectionalLight(euler=(0,90,0), color=viz.WHITE)
+	sky_light.setShadowMode(viz.SHADOW_DEPTH_MAP)
+	
 #	viz.mouse(viz.OFF)
 #	viz.mouse.setVisible(False)
 	viz.mouse.setTrap()
 
 	# Add environment
 	viz.addChild('maze.osgb')
+	
+	vizconfig.getConfigWindow().setWindowVisible(True)
+	
+	# Add directions to canvas
+	canvas = viz.addGUICanvas(pos=[0, 3.0, 6.0])
+	canvas.setMouseStyle(0)
+	canvas.alignment(viz.ALIGN_CENTER)
+	canvas.setRenderWorld([400,400], [5.0,5.0])
+

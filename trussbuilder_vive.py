@@ -89,7 +89,8 @@ FOV = 35
 START_FOV = 100
 STENCIL = 8
 STEREOMODE = viz.STEREO_HORZ
-FULLSCREEN = viz.FULLSCREEN
+#FULLSCREEN = viz.FULLSCREEN
+FULLSCREEN = 0
 CLEAR_COLOR = viz.GRAY
 GRID_COLOR = viz.BLACK
 BUTTON_SCALE = 0.5
@@ -297,7 +298,8 @@ def initLighting():
 	for window in viz.getWindowList():
 		window.getView().getHeadLight().disable()
 	# Create directional light
-	sky_light = vizfx.addDirectionalLight(euler=(30,45,0),color=[0.8,0.8,0.8])
+	sky_light = vizfx.addDirectionalLight(euler=(30,45,0),color=viz.WHITE)
+#	sky_light.setShadowMode(viz.SHADOW_DEPTH_MAP)
 #	sky_light2 = vizfx.addDirectionalLight(euler=(-30,45,0),color=[0.8,0.8,0.8])	
 #	light1 = vizfx.addDirectionalLight(euler=(40,20,0), color=[0.7,0.7,0.7])
 #	light2 = vizfx.addDirectionalLight(euler=(-65,15,0), color=[0.5,0.25,0.0])
@@ -307,6 +309,19 @@ def initLighting():
 #	sky_light.ambient([0.8]*3)
 #	sky_light2.ambient([0.8]*3)
 #	vizfx.setAmbientColor([0.3,0.3,0.4])
+
+# Create effect for highlighting objects
+code = """
+Effect {
+	Type Highlight
+	Shader {
+		BEGIN FinalColor
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.0, 1.0, 1.0), 0.5);
+		END
+	}
+}
+"""
+highlightEffect = viz.addEffect(code)
 
 def getCatalogue(path):
 	"""Parse catalogue from data subdirectory"""
@@ -1487,7 +1502,7 @@ def toggleUtility(val=viz.TOGGLE):
 		menuCanvas.visible(False)
 		
 	utilityCanvas.visible(val)
-	glove.visible(False)
+#	glove.visible(False)
 
 	if utilityCanvas.getVisible() is True:
 		inventoryCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
@@ -1496,7 +1511,8 @@ def toggleUtility(val=viz.TOGGLE):
 		if MODE == structures.Mode.Build:
 			inventoryCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
 		elif MODE == structures.Mode.Edit:
-			glove.visible(True)
+#			glove.visible(True)
+			pass
 		hideMenuSound.play()
 
 
@@ -1518,12 +1534,14 @@ def toggleMenu(val=viz.TOGGLE):
 	if menuCanvas.getVisible() is True:
 		pos = viz.MainView.getLineForward().endFromDistance(.75)
 		rot = viz.MainView.getLineForward().euler
-		menuCanvas.setPosition(pos)
-		menuCanvas.setEuler(rot)
+		menuCanvas.setParent(navigator.getLeftController().model)
+		menuCanvas.setPosition([0,0,0])
+#		menuCanvas.setPosition(pos)
+#		menuCanvas.setEuler(rot)
 		dialogCanvas.setPosition([pos[0],pos[1]-1,pos[2]])
 		dialogCanvas.setEuler(rot)
 		inventoryCanvas.visible(False)
-		glove.visible(False)
+#		glove.visible(False)
 		SHOW_HIGHLIGHTER = False
 		createConfirmButton()
 		showMenuSound.play()
@@ -2068,7 +2086,7 @@ def cycleMode(mode=structures.Mode.Add):
 	
 	toggleEnvironment(False)
 	toggleGrid(True)
-	glove.visible(False)
+#	glove.visible(False)
 	proxyManager.setDebug(True)
 	inventoryCanvas.visible(True)
 	
@@ -2105,7 +2123,7 @@ def cycleMode(mode=structures.Mode.Add):
 		inventoryCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
 		
 		menuCanvas.visible(False)	
-		glove.visible(True)
+#		glove.visible(True)
 		if info_root.getVisible() is True:
 			info_root.visible(False)
 			
@@ -2250,11 +2268,11 @@ def onKeyUp(key):
 		clickSound.play()
 	elif key == KEYS['builder'] or key == KEYS['builder'].upper():
 		cycleMode(structures.Mode.Edit)
-		mouseTracker.distance = HAND_DISTANCE
+#		mouseTracker.distance = HAND_DISTANCE
 		clickSound.play()
 	elif key == KEYS['viewer'] or key == KEYS['viewer'].upper():
 		cycleMode(structures.Mode.View)
-		mouseTracker.distance = HAND_DISTANCE
+#		mouseTracker.distance = HAND_DISTANCE
 		clickSound.play()
 	elif key == KEYS['walk'] or key == KEYS['walk'].upper():
 		cycleMode(structures.Mode.Walk)
@@ -2330,7 +2348,58 @@ def onJoyButton(e):
 	elif e.button == KEYS['proxi']:
 		proxyManager.setDebug(viz.TOGGLE)
 		clickSound.play()
-
+		
+def onControllerButton(e):
+	KEYS = navigator.KEYS
+	
+	if e.button == KEYS['esc']:
+		if utilityCanvas.getVisible() is True:
+			toggleUtility(False)
+		elif menuCanvas.getVisible() is True:
+			toggleMenu(False)
+#		else:
+#			quitGame()
+	elif e.button == ',':
+		print navigator.getPosition()
+	elif e.button == KEYS['env']:
+		toggleEnvironment()	
+	elif e.button == KEYS['reset']:
+		navigator.reset()
+		if MODE == structures.Mode.Walk:
+			cycleMode(structures.Mode.View)
+		navigator.setNavAbility()
+#		mouseTracker.distance = HAND_DISTANCE
+		runFeedbackTask('View reset!')
+		viewChangeSound.play()
+	elif e.button == KEYS['hand']:
+#		mouseTracker.distance = HAND_DISTANCE
+		clickSound.play()
+	elif e.button == KEYS['builder']:
+		if MODE == structures.Mode.Build or MODE == structures.Mode.Edit:
+			cycleMode(structures.Mode.View)
+		elif MODE == structures.Mode.View or MODE == structures.Mode.Walk:
+			mouseTracker.distance = HAND_DISTANCE
+			cycleMode(CACHED_BUILD_MODE)
+		clickSound.play()
+	elif e.button == KEYS['viewer']:
+		cycleMode(structures.Mode.View)
+#		mouseTracker.distance = HAND_DISTANCE
+		clickSound.play()
+	elif e.button == KEYS['walk']:
+		cycleMode(structures.Mode.Walk)
+		clickSound.play()
+	elif e.button == KEYS['grid']:
+		toggleGrid(viz.TOGGLE)
+	elif e.button == KEYS['showMenu']:
+		toggleMenu()
+	elif e.button == KEYS['utility']:
+		toggleUtility()
+	elif e.button == KEYS['proxi']:
+		proxyManager.setDebug(viz.TOGGLE)
+		clickSound.play()
+	elif e.button == KEYS['interact']:
+#		print(e)
+		pass
 		
 def onMouseWheel(dir):
 #	global ORIENTATION
@@ -2755,6 +2824,103 @@ def createConfirmButton():
 	vizact.onbuttonup ( doneButton, cycleMode, structures.Mode.Build )
 	vizact.onbuttonup ( doneButton, menuCanvas.visible, viz.OFF )
 
+def HighlightPainting(name, mode):
+	"""Apply/Unapply highlight effect from specified painting"""
+	if name:
+		if mode:
+			gallery.apply(highlightEffect, node=name)
+		else:
+			gallery.unapply(highlightEffect, node=name)
+
+def HighlightTask(navigator, controller):
+	"""Task that highlights jump locations pointed at by controller"""
+
+	# Show controller pointer
+#	controller.line.visible(True)
+
+	# Update highlight every frame
+	last_highlight = ''
+	try:
+		while True:
+
+			# Intersect pointer with scene
+			info = navigator.IntersectController(controller)
+			print(info.name)
+			# Check if name is a jump location painting
+			node_name = info.name if info.name is 'menu' else ''
+
+			# Update highlight state if selected painting changed
+			if last_highlight != node_name:
+				controller.setVibration(0.001)
+#				HighlightPainting(last_highlight, False)
+				last_highlight = node_name
+#				HighlightPainting(last_highlight, True)
+
+			# Wait for next frame
+			yield None
+
+	finally:
+			pass
+		# Remove highlight when task finishes
+#		HighlightPainting(last_highlight, False)
+
+		# Hide controller pointer
+#		controller.line.visible(False)
+
+def ClickTask(navigator, controller):
+	"""Task that users trigger button press/release to jump to painting locations"""
+	while True:
+
+		# Wait for trigger to press
+		yield viztask.waitSensorDown(controller, navigator.KEYS['interact'])
+		print('Sensor click down')
+		# Start highlighting task
+		highlightTask = viztask.schedule(HighlightTask(navigator, controller))
+
+		# Wait for trigger to release
+		yield viztask.waitSensorUp(controller, navigator.KEYS['interact'])
+
+		# Stop highlighting task
+		highlightTask.remove()
+
+		# Intersect pointer with scene
+		info = navigator.IntersectController(controller)
+		if info.name is 'menu':
+			
+			viztask.schedule(CanvasButtonTask(controller, menuCanvas))
+			
+#			# Move navigation node to jump location
+#			jumpPos = list(JUMP_LOCATIONS[info.name])
+#			viewPos = viz.MainView.getPosition()
+#			navPos = navigationNode.getPosition()
+#			jumpPos[0] = jumpPos[0] - (viewPos[0] - navPos[0])
+#			jumpPos[2] = jumpPos[2] - (viewPos[2] - navPos[2])
+#			navigationNode.setPosition(jumpPos)
+#
+#			# Display jump flash
+#			jump_flash.visible(True)
+#			jump_flash.runAction(vizact.fadeTo(viz.BLACK, begin=viz.WHITE, time=2.0, interpolate=vizact.easeOutStrong))
+#			jump_flash.addAction(vizact.method.visible(False))
+#
+#			# Hide instruction canvas after first jump
+#			canvas.visible(False)
+			pass
+			
+def CanvasButtonTask(controller, canvas):
+
+    while True:
+
+        # Wait for sensor button 1 to be pressed
+        yield viztask.waitSensorDown(controller, navigator.KEYS['interact'])
+
+        # Simulate mouse button press on canvas
+        canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.DOWN)
+
+        # Wait for sensor button 1 to be released
+        yield viztask.waitSensorUp(controller, navigator.KEYS['interact'])
+
+        # Simulate mouse button release on canvas
+        canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.UP)
 
 # Schedule tasks
 def MainTask():
@@ -2762,15 +2928,17 @@ def MainTask():
 	viewChangeSound.play()	
 
 	global glove
-	glove = viz.addChild('glove.cfg')
-	glove.disable(viz.INTERSECT_INFO_OBJECT)
+#	glove = viz.addChild('glove.cfg')
+#	glove.disable(viz.INTERSECT_INFO_OBJECT)
 	
 #	viz.MainView.setPosition(START_POS)
 	
 	while True:		
-		FlashScreen()
+#		FlashScreen()
 		
-		yield viztask.waitButtonUp(doneButton)
+#		yield viztask.waitButtonUp(doneButton)
+		
+		yield viztask.waitKeyDown(viz.KEY_RETURN)
 		
 		createConfirmButton()
 		vizact.onbuttonup(orderSideButton,createConfirmButton)
@@ -2781,7 +2949,9 @@ def MainTask():
 #		menuCanvas.setRenderWorldOverlay(RESOLUTION, fov=START_FOV, distance=3.0)
 		bb = menuTabPanel.getBoundingBox()
 		menuCanvas.setRenderWorld([bb.width * .8, bb.height + 55],[1,viz.AUTO_COMPUTE])
-		menuTabPanel.selectPanel(0)
+		menuTabPanel.selectPanel(2)
+		menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)				
+		menuCanvas.name = 'menu'
 		
 		bb = dialog.getBoundingBox()
 		dialogCanvas.setRenderWorld([bb.width,bb.height],[1,viz.AUTO_COMPUTE])
@@ -2805,15 +2975,24 @@ def MainTask():
 		viz.callback ( viz.MOUSEUP_EVENT, onMouseUp )
 		viz.callback ( viz.MOUSEDOWN_EVENT, onMouseDown )
 #		viz.callback ( viz.MOUSEWHEEL_EVENT, onMouseWheel )
-		viz.callback ( viz.SENSOR_UP_EVENT, onJoyButton )
+#		viz.callback ( viz.SENSOR_UP_EVENT, onJoyButton )
 		
 		# Setup navigation
 		import navigation
-		joystickConnected = navigation.checkJoystick()
-		oculusConnected = navigation.checkOculus()
+		steamVRConnected = navigation.checkSteamVR()
+#		joystickConnected = navigation.checkJoystick()
+#		oculusConnected = navigation.checkOculus()
 		navigator = None
 		
-		if oculusConnected and joystickConnected:
+		if steamVRConnected:
+			navigator = navigation.SteamVR()
+#			menuCanvas.setEuler(0,0,0)
+#			menuLink = viz.grab( navigator.getRightController(), menuCanvas )
+			highlightTool = navigator.getHighlighter()
+			viztask.schedule(ClickTask(navigator, navigator.getRightController()))
+			viz.callback ( viz.SENSOR_UP_EVENT, onControllerButton )
+			navigator.setAsMain()
+		elif oculusConnected and joystickConnected:
 			navigator = navigation.Joyculus()
 			vizact.onsensorup( navigator.getSensor(), navigator.KEYS['mode'],cycleMode,vizact.choice([structures.Mode.Build,structures.Mode.Edit]))
 			vizact.onsensorup( navigator.getSensor(), navigator.KEYS['orient'],cycleOrientation,vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]))
@@ -2857,17 +3036,17 @@ def MainTask():
 		
 		initMouse()
 		highlightTool.setUpdateFunction(updateHighlightTool)
-		mouseTracker = initTracker(HAND_DISTANCE)
-		gloveLink = viz.link(mouseTracker,glove)
-		gloveLink.postMultLinkable(navigator.VIEW)
-		viz.link(gloveLink,highlightTool)	
+#		mouseTracker = initTracker(HAND_DISTANCE)
+#		gloveLink = viz.link(mouseTracker,glove)
+#		gloveLink.postMultLinkable(navigator.VIEW)
+#		viz.link(gloveLink,highlightTool)	
 		
 		#--Link inspector label to glove
-		inspectorLink = viz.link(gloveLink,inspectorCanvas)
-		inspectorLink.postTrans([0,-.2,0])
-		inspectorCanvas.visible(False)
+#		inspectorLink = viz.link(gloveLink,inspectorCanvas)
+#		inspectorLink.postTrans([0,-.2,0])
+#		inspectorCanvas.visible(False)
 		
-		vizact.ontimer(0,clampTrackerScroll,mouseTracker,SCROLL_MIN,SCROLL_MAX)
+#		vizact.ontimer(0,clampTrackerScroll,mouseTracker,SCROLL_MIN,SCROLL_MAX)
 		
 		rotationCanvas.setEuler( [0,30,0] )
 		

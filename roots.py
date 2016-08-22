@@ -119,13 +119,16 @@ class EnvironmentRoot(Root):
 		
 		self._day = viz.add('resources/sky_day.osgb',parent=self._root)
 		self._day.renderToBackground(order=8)
+		self._day.disable(viz.INTERSECT_INFO_OBJECT)
 		self._environment = vizfx.addChild('resources/environment.osgb',parent=self._root)
 		self._environment.renderToBackground()
+		self._environment.disable(viz.INTERSECT_INFO_OBJECT)
 		self._waveGroup = viz.addGroup(parent=self._root)
 #		self._wave_M = viz.addChild('resources/wave.osgb',cache=viz.CACHE_CLONE,pos=([0,1.5,0]),parent=self._waveGroup)
 #		self._wave_B = viz.addChild('resources/wave.osgb',cache=viz.CACHE_CLONE,pos=([0,1.5,-50]),parent=self._waveGroup)
 		self._newWalkway = vizfx.addChild('resources/walkway.osgb',pos=[0,0.25,0], parent=self._root)	
-#		self._newWalkway = vizfx.addChild('resources/walkway.osgb', parent=self._root)	
+#		self._newWalkway = vizfx.addChild('resources/walkway.osgb', parent=self._root)
+		self._newWalkway.disable(viz.INTERSECT_INFO_OBJECT)
 	def getWaveGroup(self):
 		return self._waveGroup
 		
@@ -168,10 +171,12 @@ if __name__ == '__main__':
 	ORIGIN = [0,5,-17]
 	
 	gridRoot = GridRoot()
+	gridRoot.getGroup().disable(viz.INTERSECT_INFO_OBJECT)
 	viz.MainView.setPosition(ORIGIN)	
 	
 #	bridgeRoot = BridgeRoot()
 	environment_root = EnvironmentRoot()
+	environment_root.getGroup().disable(viz.INTERSECT_INFO_OBJECT)
 #	wave_M = viz.addChild('resources/wave.osgb',cache=viz.CACHE_CLONE,pos=([0,0.75,0]),parent=environment_root)
 #	wave_M.setAnimationSpeed(0.02)
 #	wave_B = viz.addChild('resources/wave.osgb',cache=viz.CACHE_CLONE,pos=([0,0.75,-50]),parent=environment_root)
