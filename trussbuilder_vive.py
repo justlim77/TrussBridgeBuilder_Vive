@@ -376,7 +376,7 @@ def toggleCanvas(canvas, value):
 		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE)
 		canvas.visible(True)
 	else:		
-		canvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
+		canvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
 		canvas.visible(False)
 	
 
@@ -690,8 +690,8 @@ def runFeedbackTask(message='Welcome'):
 	
 
 def showdialog(message,func):
-	menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
-	inventoryCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
+	menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
+	inventoryCanvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
 	
 	global dialog
 	dialog.remove()
@@ -705,6 +705,7 @@ def showdialog(message,func):
 	dialogCanvas.setRenderWorld([bb.width, bb.height], [1,viz.AUTO_COMPUTE])	
 	dialogCanvas.visible(viz.ON)	
 	dialogCanvas.setParent(menuCanvas)
+	dialogCanvas.setPosition([0,0,0], mode=viz.ABS_PARENT)
 	
 	warningSound.play()
 	
@@ -717,9 +718,10 @@ def showdialog(message,func):
 		dialog.remove()
 		dialogCanvas.visible(viz.OFF)
 		
-		menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
+		if menuCanvas.getVisible() is True:
+			menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL | viz.CANVAS_MOUSE_BUTTON)
 		if MODE is structures.Mode.Build:
-			inventoryCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
+			toggleCanvas(inventoryCanvas, True)
 		
 def clearBridge():
 	viztask.schedule(showdialog(CLEAR_MESSAGE,clearMembers))
@@ -1512,14 +1514,20 @@ def toggleUtility(val=viz.TOGGLE):
 	if isgrabbing or isrotating:
 		return
 	
+	# Disable menu if active
 	if menuCanvas.getVisible() is True:
 		toggleCanvas(menuCanvas, False)
-		
-	if utilityCanvas.getVisible() is True:
-		toggleCanvas(utilityCanvas, False)
+	
+	# If not auto-toggle, manually set visibility
+	if val is not viz.TOGGLE:
+		toggleCanvas(utilityCanvas, val)
 	else:
-		toggleCanvas(utilityCanvas, True)
+		if utilityCanvas.getVisible() is True:
+			toggleCanvas(utilityCanvas, False)
+		else:
+			toggleCanvas(utilityCanvas, True)
 
+	# Check utility canvas visibility
 	if utilityCanvas.getVisible() is True:
 		toggleCanvas(inventoryCanvas, False)
 		showMenuSound.play()
@@ -1543,16 +1551,21 @@ def toggleMenu(val=viz.TOGGLE):
 	if isgrabbing is True or isrotating is True:
 		return
 		
+	# Disable utility canvas
 	if utilityCanvas.getVisible() is True:
 		toggleCanvas(utilityCanvas, False)
-		
-	if(menuCanvas.getVisible() is True):
-		toggleCanvas(menuCanvas, False)
+	
+	if val is viz.TOGGLE:		
+		if(menuCanvas.getVisible() is True):
+			toggleCanvas(menuCanvas, False)
+		else:
+			toggleCanvas(menuCanvas, True)
 	else:
-		toggleCanvas(menuCanvas, True)
+		toggleCanvas(menuCanvas, val)
 		
 	print 'toggleMenu: Menu visibility', menuCanvas.getVisible()
 	
+	# Disable inventory canvas
 	if menuCanvas.getVisible() is True:
 
 #		menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)
@@ -1566,8 +1579,8 @@ def toggleMenu(val=viz.TOGGLE):
 		
 #		SHOW_HIGHLIGHTER = False
 		
-		createConfirmButton()
-		showMenuSound.play()
+		createConfirmButton()	# Re-create to compensate for inventory change
+		showMenuSound.play()	# Play sound
 	else:
 		hideMenuSound.play()
 		if MODE == structures.Mode.Build or MODE is structures.Mode.Edit:
@@ -2288,9 +2301,6 @@ def onKeyDown(key):
 	elif key == KEYS['proxi'] or key == KEYS['proxi'].upper():
 		proxyManager.setDebug(viz.TOGGLE)
 		clickSound.play()
-	elif key == KEYS['capslock']:
-		runFeedbackTask('Caps Lock')
-		warningSound.play()
 
 
 def onKeyUp(key):
@@ -2878,23 +2888,21 @@ def InteractTriggerTask(controller):
         yield viztask.waitSensorDown(controller, navigator.KEYS['interact'])
 		
         # Simulate mouse button press on canvas
-        canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.DOWN)
+        onMouseDown()
 
         # Wait for sensor button 1 to be released
         yield viztask.waitSensorUp(controller, navigator.KEYS['interact'])
 
         # Simulate mouse button release on canvas
-        canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.UP)
+        onMouseUp()
+		
 # Schedule tasks
 def MainTask():
-	global INITIALIZED
+	global INITIALIZED	
 	viewChangeSound.play()	
-
-	global glove
-#	glove = viz.addChild('glove.cfg')
-#	glove.disable(viz.INTERSECT_INFO_OBJECT)
 	
-#	viz.MainView.setPosition(START_POS)
+	if INITIALIZED is True:
+		return
 	
 	while True:		
 		FlashScreen()
@@ -2919,10 +2927,7 @@ def MainTask():
 		menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)		
 		
 		# Define globals
-#		global mouseTracker
-		global gloveLink
 		global highlightTool
-		global playerNode
 		global navigator
 		
 		# Setup callbacks
@@ -2935,11 +2940,11 @@ def MainTask():
 
 		vizact.onbuttondown ( menuButton, onKeyDown, KEYS['showMenu'] )
 		vizact.onbuttondown ( homeButton, onKeyDown, KEYS['home'] )
-		vizact.onbuttondown ( buildModeButton, onKeyDown, KEYS['builder'] )
+		vizact.onbuttondown ( toggleToolButton, onKeyDown, KEYS['builder'] )
 		vizact.onbuttondown ( viewerModeButton, onKeyDown, KEYS['viewer'] )
 		vizact.onbuttondown ( walkModeButton, onKeyDown, KEYS['walk'] )
 		vizact.onbuttondown ( resetOriButton, onKeyDown, KEYS['reset'] )
-		vizact.onbuttondown ( toggleToolButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )
+		vizact.onbuttondown ( buildModeButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )
 		vizact.onbuttondown ( toggleOriButton, cycleOrientation, vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )			
 		
 		# Setup navigation
@@ -2956,7 +2961,9 @@ def MainTask():
 			viztask.schedule(RaycastTask(highlightTool, menuCanvas))
 			viztask.schedule(CanvasButtonTask(navigator.getRightController(), menuCanvas))
 			viz.callback ( viz.SENSOR_UP_EVENT, onControllerButton )
-			vizact.onsensordown( navigator.getLeftController(), navigator.KEYS['utility'], toggleUtility )
+			vizact.onsensorup	( navigator.getRightController(), navigator.KEYS['interact'], onMouseUp, navigator.KEYS['interact'] )
+			vizact.onsensordown	( navigator.getRightController(), navigator.KEYS['interact'], onMouseDown, navigator.KEYS['interact'] )
+			vizact.onsensordown	( navigator.getLeftController(), navigator.KEYS['utility'], toggleUtility )
 			navigator.setAsMain()
 		elif oculusConnected and joystickConnected:
 			navigator = navigation.Joyculus()
@@ -3001,11 +3008,7 @@ def MainTask():
 		navigator.reset()
 		
 		initMouse()
-		highlightTool.setUpdateFunction(updateHighlightTool)
-#		mouseTracker = initTracker(HAND_DISTANCE)
-#		gloveLink = viz.link(mouseTracker,glove)
-#		gloveLink.postMultLinkable(navigator.VIEW)
-#		viz.link(gloveLink,highlightTool)	
+		highlightTool.setUpdateFunction(updateHighlightTool)	
 		
 		#--Link inspector label to glove
 #		inspectorLink = viz.link(gloveLink,inspectorCanvas)
@@ -3017,18 +3020,13 @@ def MainTask():
 		menuCanvas.setParent(navigator.getLeftController().model)
 		menuCanvas.setPosition([0,0,0.2])
 		
-#		inventoryLink = viz.link(navigator.VIEW,inventoryCanvas)
-#		inventoryLink.postTrans([0,-0.5,0.75])
-#		inventoryLink.preEuler([0,30,0])
 		inventoryCanvas.setParent(navigator.getLeftController().model)
-		inventoryCanvas.setPosition([0,0,0], mode=viz.ABS_PARENT)
-#		inventoryCanvas.setEuler([0,90,0])
+		inventoryCanvas.setPosition([0,0,0.1], mode=viz.ABS_PARENT)
 		viztask.schedule(RaycastTask(highlightTool, inventoryCanvas))
 		viztask.schedule(CanvasButtonTask(navigator.getRightController(), inventoryCanvas))
 		
 		rotationCanvas.setParent(navigator.getRightController().model)
 		rotationCanvas.setPosition([0,0,0], mode=viz.ABS_PARENT)
-		rotationCanvas.setEuler( [0,0,0] )
 		
 		# Setup utility canvas
 		utilityCanvas.setParent(navigator.getLeftController().model)
@@ -3062,7 +3060,8 @@ def MainTask():
 #		toggleMenu(True)
 		
 		INITIALIZED = True
-viztask.schedule( MainTask() )
+				
+mainTask = viztask.schedule( MainTask() )
 
 		
 # Pre-load sounds
