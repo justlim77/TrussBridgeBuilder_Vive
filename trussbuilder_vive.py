@@ -376,7 +376,7 @@ def toggleCanvas(canvas, value):
 		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE)
 		canvas.visible(True)
 	else:		
-		canvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
+		canvas.setMouseStyle(viz.CANVAS_MOUSE_MOVE)
 		canvas.visible(False)
 	
 
@@ -2407,7 +2407,7 @@ def onControllerButton(e):
 		proxyManager.setDebug(viz.TOGGLE)
 		clickSound.play()
 	elif e.button == KEYS['interact']:
-		print(e)
+		print(e.button)
 		pass
 		
 def onMouseWheel(dir):
@@ -2629,12 +2629,12 @@ def onMouseUp(button):
 
 		print 'MouseUp: IsGrabbing is',isgrabbing,' | GrabbedItem is',grabbedItem
 	
-	if button == navigator.KEYS['utility']:
-		#--If mode is Mode.Add, flip truss; else toggle utils
-		if grabbedItem is None:
-			toggleUtility()
-		elif MODE is structures.Mode.Add or MODE is structures.Mode.Edit:
-			spinTruss(grabbedItem)
+#	if button == navigator.KEYS['utility']:
+#		#--If mode is Mode.Add, flip truss; else toggle utils	
+#		if grabbedItem is None:
+#			toggleUtility()
+#		elif MODE is structures.Mode.Add or MODE is structures.Mode.Edit:
+#			spinTruss(grabbedItem)
 			
 	if button == navigator.KEYS['rotate']:
 		if grabbedItem is not None:			
@@ -2817,13 +2817,21 @@ gray_effect = GrayEffect()
 
 def createConfirmButton():
 	global doneButton
+	global INITIALIZED
+	global mainTask
+	
+	if INITIALIZED is True:
+		mainTask.kill()
+		
 	bottomRow.removeItem(doneButton)
 	doneButton = bottomRow.addItem(viz.addButtonLabel('Confirm order'),align=viz.ALIGN_CENTER_TOP)
 	doneButton.length(2)
+	
 	vizact.onbuttonup ( doneButton, populateInventory )
-	vizact.onbuttonup ( doneButton, clickSound.play )
+	vizact.onbuttonup ( doneButton, toggleCanvas, menuCanvas, False )
 	vizact.onbuttonup ( doneButton, cycleMode, structures.Mode.Build )
-	vizact.onbuttonup ( doneButton, menuCanvas.visible, viz.OFF )
+	vizact.onbuttonup ( doneButton, clickSound.play )
+#	vizact.onbuttonup ( doneButton, menuCanvas.visible, viz.OFF )
 
 def IntersectHighlighter(highlighter):
 	line = highlighter.getLineForward(viz.ABS_GLOBAL, length=100.0)
@@ -2899,16 +2907,14 @@ def InteractTriggerTask(controller):
 # Schedule tasks
 def MainTask():
 	global INITIALIZED	
-	viewChangeSound.play()	
-	
-	if INITIALIZED is True:
-		return
+	global mainTask
+	viewChangeSound.play()
 	
 	while True:		
 		FlashScreen()
 		
 		yield viztask.waitButtonUp(doneButton)
-		
+
 #		yield viztask.waitKeyDown(viz.KEY_RETURN)
 		
 		createConfirmButton()
@@ -2961,9 +2967,13 @@ def MainTask():
 			viztask.schedule(RaycastTask(highlightTool, menuCanvas))
 			viztask.schedule(CanvasButtonTask(navigator.getRightController(), menuCanvas))
 			viz.callback ( viz.SENSOR_UP_EVENT, onControllerButton )
-			vizact.onsensorup	( navigator.getRightController(), navigator.KEYS['interact'], onMouseUp, navigator.KEYS['interact'] )
-			vizact.onsensordown	( navigator.getRightController(), navigator.KEYS['interact'], onMouseDown, navigator.KEYS['interact'] )
-			vizact.onsensordown	( navigator.getLeftController(), navigator.KEYS['utility'], toggleUtility )
+			vizact.onsensorup	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseUp,		navigator.KEYS['interact'] )
+			vizact.onsensordown	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseDown,	navigator.KEYS['interact'] )
+			vizact.onsensordown	( navigator.getLeftController(),	navigator.KEYS['utility'],	toggleUtility )
+			vizact.onkeydown( navigator.KEYS['mode'], 	cycleMode, 			vizact.choice([structures.Mode.Build,structures.Mode.Edit]))
+			vizact.onkeydown( navigator.KEYS['orient'],	cycleOrientation, 	vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )
+			vizact.onkeydown( navigator.KEYS['angles'], cycleView, 			vizact.choice([0,1,2,3]) )
+			vizact.onkeydown( navigator.KEYS['stereo'], toggleStereo, 		vizact.choice([False,True]) )			
 			navigator.setAsMain()
 		elif oculusConnected and joystickConnected:
 			navigator = navigation.Joyculus()
@@ -3002,8 +3012,8 @@ def MainTask():
 			vizact.onkeyup( navigator.KEYS['stereo'],toggleStereo,vizact.choice([False,True]))
 			vizact.whilekeydown( navigator.KEYS['slideNear'],slideRoot,-SLIDE_INTERVAL)		
 			vizact.whilekeydown( navigator.KEYS['slideFar'],slideRoot,SLIDE_INTERVAL)
-			navigator.setAsMain()
-		
+			navigator.setAsMain()					
+
 		navigator.setOrigin(START_POS,[0,0,0])
 		navigator.reset()
 		
@@ -3062,7 +3072,6 @@ def MainTask():
 		INITIALIZED = True
 				
 mainTask = viztask.schedule( MainTask() )
-
 		
 # Pre-load sounds
 viz.playSound('./resources/sounds/return_to_holodeck.wav',viz.SOUND_PRELOAD)
