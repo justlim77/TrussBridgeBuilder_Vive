@@ -462,11 +462,12 @@ class SteamVR(Navigator):
 					,'left' 	: 'a'
 					,'right'	: 'd'
 					,'camera'	: 'c'
+					,'elevate'	: steamvr.BUTTON_TRACKPAD	#4	
 					,'restart'	: viz.KEY_HOME
 					,'home'		: viz.KEY_HOME
-					,'utility'	: steamvr.BUTTON_TRIGGER	#2
+					,'utility'	: steamvr.BUTTON_MENU		#0
 					,'reset'	: steamvr.BUTTON_GRIP		#1
-					,'showMenu' : steamvr.BUTTON_MENU		#0
+					,'showMenu' : ' '
 					,'down'		: 2
 					,'orient'	: 3
 					,'up'		: 4
@@ -475,11 +476,11 @@ class SteamVR(Navigator):
 					,'walk'		: 7
 					,'angles'	: 8
 					,'road'		: 10
-					,'esc'		: 999
+					,'esc'		: viz.KEY_ESCAPE
 					,'slideFar'	: 0
 					,'slideNear': 180
-					,'env'		: '-'
-					,'grid'		: '-'
+					,'env'		: 't'
+					,'grid'		: 'g'
 					,'snapMenu'	: viz.KEY_CONTROL_L
 					,'interact' : steamvr.BUTTON_TRIGGER
 					,'rotate'	: viz.MOUSEBUTTON_RIGHT
@@ -487,8 +488,6 @@ class SteamVR(Navigator):
 					,'viewer'	: 'o'
 					,'collide'	: 'c'
 					,'stereo' 	: 'm'
-					,'hand'		: 'h'
-					,'capslock'	: viz.KEY_CAPS_LOCK
 		}		
 		
 		# Link navigation node to main view
@@ -555,6 +554,9 @@ class SteamVR(Navigator):
 			self.HIGHLIGHTER.setParent(self.RIGHT_CONTROLLER.model)
 #				link.preTrans([0, -0.3, 1.0])
 			self.HIGHLIGHTER.getHighlight().setColor(viz.CYAN)
+			
+			# Disable left controller line
+			self.LEFT_CONTROLLER.line.visible(True)
 #				highlightLink = viz.link(self.getRightController().link,self.highlightTool)
 #			def updateHighlightTool(tool):
 #				tool.highlight()
@@ -586,8 +588,12 @@ class SteamVR(Navigator):
 		yaw,pitch,roll = self.VIEW_LINK.getEuler()
 		m = viz.Matrix.euler(yaw,0,0)
 		dm = viz.getFrameElapsed() * self.MOVE_SPEED
-		x,z = self.getLeftController().getTrackpad()
-		y = self.getRightController().getTrackpad()[1]
+		x,y,z = [0,0,0]
+		if self.CAN_ELEVATE is True:
+			y = self.getLeftController().getTrackpad()[1]
+		else:
+			x,z = self.getLeftController().getTrackpad()
+			
 		self.NODE.setPosition([x * dm, y * dm, z * dm], viz.REL_PARENT)
 		
 #		if viz.key.isDown(self.KEYS['forward']) and self.CAN_STRAFE:
@@ -606,10 +612,18 @@ class SteamVR(Navigator):
 		
 	def setAsMain(self):
 		self.MOVE_SPEED = 2.0	
+		self.CAN_ELEVATE = False
 		
 		vizact.ontimer(0,self.updateView)
 		vizact.onsensordown(self.getLeftController(), self.KEYS['reset'], self.reset) 
 		vizact.onsensordown(self.getRightController(), self.KEYS['reset'], self.reset) 
+		def ToggleElevation(val):
+			self.CAN_ELEVATE = val
+			print self.CAN_ELEVATE
+			
+		vizact.onsensordown(self.getLeftController(), self.KEYS['elevate'], ToggleElevation, True)
+		vizact.onsensorup(self.getLeftController(), self.KEYS['elevate'], ToggleElevation, False)
+		
 				
 	def IntersectController(self, controller):
 		"""Perform intersection using controller"""
