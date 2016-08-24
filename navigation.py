@@ -855,3 +855,11 @@ if __name__ == '__main__':
 	canvas.alignment(viz.ALIGN_CENTER)
 	canvas.setRenderWorld([400,400], [5.0,5.0])
 
+	import vizshape
+	plane = vizshape.addPlane(size=(20,10))
+	plane.setPosition(0,5,5)
+	plane.setEuler(0,-90,0)
+	def getIntersectInfo():
+		info = nav.IntersectController(nav.getRightController())
+		print info.intersectPoint
+	vizact.ontimer(0,getIntersectInfo)

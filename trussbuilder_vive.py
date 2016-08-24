@@ -165,6 +165,7 @@ BOT_CACHED_Z = -5				# Cache z-position of Bot Bridge View
 BOT_Z_MIN = -5					# Minimum z-position of Bottom Bridge Root
 SLIDE_MAX = 100					# Max z-position of bridge root sliding
 SLIDE_INTERVAL = 0.05			# Interval to slide bridge root in TOP/BOTTOM View
+SNAP_INTERVAL = 5				# Interval to snap while rotating truss
 SUPPORT_ALPHA = 0.25			# Alpha value for bridge red supports	
 INACTIVE_ALPHA = 0.25			# Alpha value for inactive truss members
 ORIENTATION = structures.Orientation.Side
@@ -2656,6 +2657,28 @@ def controllerRotateTruss(controller):
 		rot[0] = 0
 		rot[1] = 0
 		grabbedItem.setEuler(rot)
+		
+		#--Check near 90
+		newRot = grabbedItem.getEuler()
+		if mathlite.math.fabs(newRot[2]+90) <= 5:	# Snap -90
+			newRot[2] = -90
+		elif mathlite.math.fabs(newRot[2]-90) <= 5:	# Snap 90
+			newRot[2] = 90
+		elif mathlite.math.fabs(newRot[2]+180) <= 5:	# Snap -180
+			newRot[2] = -180
+		elif mathlite.math.fabs(newRot[2]-180) <= 5:	# Snap 180
+			newRot[2] = 180
+		elif mathlite.math.fabs(newRot[2]) <= 5:
+			newRot[2] = 0
+		elif mathlite.math.fabs(newRot[2]+45) <= 5:
+			newRot[2] = -45
+		elif mathlite.math.fabs(newRot[2]-45) <= 5:
+			newRot[2] = 45
+		elif mathlite.math.fabs(newRot[2]+135) <= 5:
+			newRot[2] = -135
+		elif mathlite.math.fabs(newRot[2]-135) <= 5:
+			newRot[2] = 135
+		grabbedItem.setEuler(newRot)
 		
 		
 def controllerSlideRoot(controller):

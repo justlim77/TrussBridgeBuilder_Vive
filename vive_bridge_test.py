@@ -164,8 +164,10 @@ BOT_CACHED_Z = -5				# Cache z-position of Bot Bridge View
 BOT_Z_MIN = -5					# Minimum z-position of Bottom Bridge Root
 SLIDE_MAX = 100					# Max z-position of bridge root sliding
 SLIDE_INTERVAL = 0.05			# Interval to slide bridge root in TOP/BOTTOM View
+SNAP_INTERVAL = 5				# Interval to snap while rotating truss
 SUPPORT_ALPHA = 0.25			# Alpha value for bridge red supports	
 INACTIVE_ALPHA = 0.25			# Alpha value for inactive truss members
+GRID_TAG = 'GRID_TAG'
 ORIENTATION = structures.Orientation.Side
 MODE = structures.Mode.View
 
@@ -2653,6 +2655,11 @@ def onMouseUp(button):
 		if grabbedItem is not None:			
 			deleteTruss()
 
+def controllerDeleteTruss():
+	global grabbedItem
+	if grabbedItem is not None:			
+			deleteTruss()
+
 def controllerRotateTruss(controller):
 	global isgrabbing
 	global grabbedItem
@@ -2663,6 +2670,28 @@ def controllerRotateTruss(controller):
 		rot[1] = 0
 		grabbedItem.setEuler(rot)
 		
+		#--Check near 90
+		newRot = grabbedItem.getEuler()
+		if mathlite.math.fabs(newRot[2]+90) <= 5:	# Snap -90
+			newRot[2] = -90
+		elif mathlite.math.fabs(newRot[2]-90) <= 5:	# Snap 90
+			newRot[2] = 90
+		elif mathlite.math.fabs(newRot[2]+180) <= 5:	# Snap -180
+			newRot[2] = -180
+		elif mathlite.math.fabs(newRot[2]-180) <= 5:	# Snap 180
+			newRot[2] = 180
+		elif mathlite.math.fabs(newRot[2]) <= 5:
+			newRot[2] = 0
+		elif mathlite.math.fabs(newRot[2]+45) <= 5:
+			newRot[2] = -45
+		elif mathlite.math.fabs(newRot[2]-45) <= 5:
+			newRot[2] = 45
+		elif mathlite.math.fabs(newRot[2]+135) <= 5:
+			newRot[2] = -135
+		elif mathlite.math.fabs(newRot[2]-135) <= 5:
+			newRot[2] = 135
+		grabbedItem.setEuler(newRot)
+				
 		
 def controllerSlideRoot(controller):
 	global SLIDE_VAL
@@ -3003,6 +3032,7 @@ def MainTask():
 			viz.callback ( viz.SENSOR_DOWN_EVENT, onControllerButton )
 			vizact.onsensorup	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseUp,		navigator.KEYS['interact'] )
 			vizact.onsensordown	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseDown,	navigator.KEYS['interact'] )
+			vizact.onsensordown	( navigator.getLeftController(),	navigator.KEYS['interact'],	controllerDeleteTruss )			
 			vizact.onsensordown	( navigator.getLeftController(),	navigator.KEYS['utility'],	toggleUtility )
 			vizact.onkeydown( navigator.KEYS['mode'], 	cycleMode, 			vizact.choice([structures.Mode.Build,structures.Mode.Edit]))
 			vizact.onkeydown( navigator.KEYS['orient'],	cycleOrientation, 	vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )
@@ -3125,6 +3155,17 @@ def MainTask():
 		#--Show menu
 		toggleMenu(True)
 #		toggleUtility(True)
+		
+		# Plane test
+		import vizshape
+		plane = vizshape.addPlane(size=(20,10))
+		plane.setPosition(0,5,-5)
+		plane.setEuler(0,-90,0)
+		plane.tag = GRID_TAG
+		def getIntersectInfo():
+			info = navigator.IntersectController(navigator.getRightController())
+			print info.intersectPoint
+		vizact.ontimer(0,getIntersectInfo)
 		
 		INITIALIZED = True
 		mainTask.kill()
