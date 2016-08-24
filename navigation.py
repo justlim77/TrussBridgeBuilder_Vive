@@ -583,6 +583,7 @@ class SteamVR(Navigator):
 	def reset(self):
 		super(self.__class__,self).reset()
 		self.hmd.getSensor().reset()
+		self.CAN_ELEVATE = False
 		
 	def updateView(self):
 		yaw,pitch,roll = self.VIEW_LINK.getEuler()
@@ -594,21 +595,15 @@ class SteamVR(Navigator):
 		else:
 			x,z = self.getLeftController().getTrackpad()
 			
-		self.NODE.setPosition([x * dm, y * dm, z * dm], viz.REL_PARENT)
+#		self.NODE.setPosition([x * dm, y * dm, z * dm], viz.REL_PARENT)
+		if self.CAN_ELEVATE is True:
+			m.preTrans([0, dm * self.getLeftController().getTrackpad()[1], 0])
+		else:
+			m.preTrans([dm * self.getLeftController().getTrackpad()[0] * 1.5,
+						0,
+						dm * self.getLeftController().getTrackpad()[1]])
 		
-#		if viz.key.isDown(self.KEYS['forward']) and self.CAN_STRAFE:
-#			m.preTrans([0,0,dm])
-#		if viz.key.isDown(self.KEYS['back']) and self.CAN_STRAFE:
-#			m.preTrans([0,0,-dm])
-#		if viz.key.isDown(self.KEYS['left']) and self.CAN_STRAFE:
-#			m.preTrans([-dm * self.STRAFE_SPEED,0,0])
-#		if viz.key.isDown(self.KEYS['right']) and self.CAN_STRAFE:
-#			m.preTrans([dm * self.STRAFE_SPEED,0,0])
-#		if viz.key.isDown(self.KEYS['up']) and self.CAN_ELEVATE:
-#			m.preTrans([0,dm,0])
-#		if viz.key.isDown(self.KEYS['down']) and self.CAN_ELEVATE:
-#			m.preTrans([0,-dm,0])
-#		self.NODE.setPosition(m.getPosition(), viz.REL_PARENT)
+		self.NODE.setPosition(m.getPosition(), viz.REL_PARENT)
 		
 	def setAsMain(self):
 		self.MOVE_SPEED = 2.0	
