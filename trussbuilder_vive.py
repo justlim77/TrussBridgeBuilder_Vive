@@ -24,6 +24,7 @@
 [ MIDDLE MOUSE CLICK ]----------Rotate grabbed truss member in 45 degree intervals
 [ RIGHT MOUSE CLICK ]------------Delete grabbed truss member
 [ SCROLL WHEEL ]-------------------Extend and retract virtual hand
+
 """
 
 #--UTF-8 Encoding
@@ -82,6 +83,7 @@ from tools import highlighter
 import xml.etree.ElementTree as ET
 
 # Globals
+#RESOLUTION = ([2160,1200])
 RESOLUTION = ([1280,720])
 UTILITY_CANVAS_RES = ([100,100])
 MULTISAMPLING = 8
@@ -373,11 +375,11 @@ def updateMouseStyle(canvas):
 
 def toggleCanvas(canvas, value):
 	if(value is True):
-		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE)
 		canvas.visible(True)
+		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE)
 	else:		
-		canvas.setMouseStyle((viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON), mode = viz.MASK_REMOVE)
 		canvas.visible(False)
+		canvas.setMouseStyle((viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON), mode = viz.MASK_REMOVE)
 	
 
 # Add environment effects
@@ -435,7 +437,8 @@ inventoryRow = vizdlg.Panel(layout=vizdlg.LAYOUT_HORZ_TOP,border=False,backgroun
 #inventoryGrid = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_LEFT_TOP,border=False)
 
 # Initialize orderPanel
-orderPanel = vizinfo.InfoPanel('Fill in all required fields',icon=False,key=None)
+#orderPanel = vizinfo.InfoPanel('Fill in all required fields',icon=False,key=None)
+orderPanel = vizinfo.InfoPanel(text=None,icon=False,key=None)
 orderPanel.setTitle( 'Order' )	
 orderPanel.getTitleBar().fontSize(28)
 orderPanel.addSeparator()
@@ -588,13 +591,13 @@ rotationLabel = viz.addText('0')
 row = rotationPanel.addRow([rotationSlider,rotationLabel])
 
 # Menu Canvas
-menuCanvas = viz.addGUICanvas(align=viz.ALIGN_CENTER)
+menuCanvas = viz.addGUICanvas(align=viz.ALIGN_CENTER_TOP)
 controlsQuad = viz.addTexQuad(size=[1024,512],parent=menuCanvas)
 controlsPic = viz.addTexture('resources/gui/merged_mapping_truss.png',parent=controlsQuad)
 controlsQuad.texture(controlsPic)
 
 # Add tabbed panels to main menu canvas
-menuTabPanel = vizdlg.TabPanel(align=viz.ALIGN_CENTER,parent=menuCanvas)
+menuTabPanel = vizdlg.TabPanel(align=viz.ALIGN_CENTER_TOP,parent=menuCanvas)
 menuTabPanel.addPanel('Instructions',instructionsPanel)
 menuTabPanel.addPanel('Controls',controlsQuad)
 menuTabPanel.addPanel('Inventory',inventoryPanel)
@@ -623,10 +626,9 @@ feedbackCanvas.visible(viz.OFF)
 def initCanvas():	
 	# Set canvas resolution to fit bounds of info panel
 	bb = menuTabPanel.getBoundingBox()
-	menuCanvas.setRenderWorld([bb.width,bb.height+50],[1,viz.AUTO_COMPUTE])
+	menuCanvas.setRenderWorld([bb.width,bb.height],[1,viz.AUTO_COMPUTE])
 	menuCanvas.setCursorPosition([0,0])
-#	menuCanvas.setPosition(0,2.275,1.5)
-	menuCanvas.setPosition(0,1.9,1.5)
+	menuCanvas.setPosition(0,2.15,1.2)
 	menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
 	
 	updateResolution(dialog,dialogCanvas)
@@ -855,17 +857,17 @@ def createInventory():
 #	Create inventory panel
 	global inventoryCanvas
 #	inventoryCanvas = viz.addGUICanvas(align=viz.ALIGN_CENTER_TOP)
-	inventoryCanvas = viz.addGUICanvas(align=viz.ALIGN_CENTER)
+	inventoryCanvas = viz.addGUICanvas(align=viz.ALIGN_CENTER_TOP)
 	
 	global inventoryGrid
-	inventoryGrid = vizdlg.GridPanel(align=viz.ALIGN_CENTER,cellAlign=vizdlg.LAYOUT_HORZ_TOP,parent=inventoryCanvas,border=False,background=False)
+	inventoryGrid = vizdlg.GridPanel(align=viz.ALIGN_CENTER_TOP,cellAlign=vizdlg.LAYOUT_HORZ_TOP,parent=inventoryCanvas,border=False,background=False)
 	
 	global inventoryTabPanel
-	inventoryTabPanel = vizdlg.TabPanel(align=viz.ALIGN_CENTER,layout=vizdlg.LAYOUT_VERT_LEFT,parent=inventoryCanvas,border=False)
+	inventoryTabPanel = vizdlg.TabPanel(align=viz.ALIGN_CENTER_TOP,layout=vizdlg.LAYOUT_VERT_LEFT,parent=inventoryCanvas,border=False)
 
 	# Side truss inventory
 	global sideInventory
-	sideInventory = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_CENTER,border=False,spacing=0,padding=1,background=False,margin=0)
+	sideInventory = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_CENTER_TOP,border=False,spacing=0,padding=1,background=False,margin=0)
 	sideInventory.layout = vizdlg.LAYOUT_VERT_LEFT
 	
 	global sidePanel
@@ -876,7 +878,7 @@ def createInventory():
 	
 	# Top truss inventory
 	global topInventory
-	topInventory = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_CENTER,border=False,spacing=0,padding=1,background=False,margin=0)
+	topInventory = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_CENTER_TOP,border=False,spacing=0,padding=1,background=False,margin=0)
 	topInventory.layout = vizdlg.LAYOUT_VERT_LEFT
 	
 	global topPanel
@@ -887,7 +889,7 @@ def createInventory():
 	
 	# Bottom truss inventory
 	global bottomInventory
-	bottomInventory = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_CENTER,border=False,spacing=0,padding=1,background=False,margin=0)
+	bottomInventory = vizdlg.GridPanel(cellAlign=vizdlg.ALIGN_CENTER_TOP,border=False,spacing=0,padding=1,background=False,margin=0)
 	bottomInventory.layout = vizdlg.LAYOUT_VERT_LEFT
 	
 	global bottomPanel
@@ -1592,10 +1594,10 @@ def toggleMenu(val=viz.TOGGLE):
 def toggleStereo(val=viz.TOGGLE):
 	if val is True:
 		runFeedbackTask('Stereo Horz')
-		viz.MainWindow.stereo(STEREOMODE)
+		viz.MainWindow.stereo(STEREOMODE | viz.HMD)
 	else:
 		runFeedbackTask('Stereo Right')
-		viz.MainWindow.stereo(viz.STEREO_RIGHT)	
+		viz.MainWindow.stereo(viz.STEREO_RIGHT | viz.HMD)	
 		
 		
 def toggleCollision(val=viz.TOGGLE):
@@ -1878,8 +1880,10 @@ def rotateTruss():
 	
 	if objToRotate is not None and isrotating is True:
 		# Clamp glove link z-orientation
-		mousePos = viz.mouse.getPosition()
-		rotateValue = mathlite.getNewRange(mousePos[1],0,1,180,-180)
+#		mousePos = viz.mouse.getPosition()
+#		rotateValue = mathlite.getNewRange(mousePos[1],0,1,180,-180)
+		rotateValue = mathlite.getNewRange(navigator.getLeftController().model.getEuler()[1], 0, 1, 180, -180)
+		
 		#--Rotate based on index
 		if objToRotate.index is 0:
 			rotateValue *= -1
@@ -2251,6 +2255,8 @@ def cycleView(index):
 
 # Setup Callbacks and Events
 def onKeyDown(key):
+	KEYS = navigator.KEYS
+	
 	if key == KEYS['esc']:
 		if utilityCanvas.getVisible() is True:
 			toggleUtility(False)
@@ -2264,9 +2270,9 @@ def onKeyDown(key):
 		viewChangeSound.play()
 	elif key == ',':
 		getAvatarOrientation(navigator)
-	elif key == KEYS['env'] or key == KEYS['env'].upper():
+	elif key == KEYS['env']:
 		toggleEnvironment()	
-	elif key == KEYS['reset'] or key == KEYS['reset'].upper():
+	elif key == KEYS['reset']:
 		try:
 			runFeedbackTask('Orientation reset!')
 			clickSound.play()
@@ -2274,21 +2280,21 @@ def onKeyDown(key):
 			runFeedbackTask('No headset!')
 			warningSound.play()
 			print 'Reset orientation failed: Unable to get Oculus Rift sensor!'
-	elif key == KEYS['hand'] or key == KEYS['hand'].upper():
-#		mouseTracker.distance = HAND_DISTANCE
-		clickSound.play()
-	elif key == KEYS['builder'] or key == KEYS['builder'].upper():
+#	elif key == KEYS['hand'] or key == KEYS['hand'].upper():
+##		mouseTracker.distance = HAND_DISTANCE
+#		clickSound.play()
+	elif key == KEYS['builder']:
 		cycleMode(structures.Mode.Edit)
 #		mouseTracker.distance = HAND_DISTANCE
 		clickSound.play()
-	elif key == KEYS['viewer'] or key == KEYS['viewer'].upper():
+	elif key == KEYS['viewer']:
 		cycleMode(structures.Mode.View)
 #		mouseTracker.distance = HAND_DISTANCE
 		clickSound.play()
-	elif key == KEYS['walk'] or key == KEYS['walk'].upper():
+	elif key == KEYS['walk']:
 		cycleMode(structures.Mode.Walk)
 		clickSound.play()
-	elif key == KEYS['grid'] or key == KEYS['grid'].upper():
+	elif key == KEYS['grid']:
 		toggleGrid(viz.TOGGLE)
 	elif key == KEYS['showMenu']:
 		toggleMenu()
@@ -2297,9 +2303,11 @@ def onKeyDown(key):
 		clickSound.play()
 	elif key == KEYS['angles']:
 		pass
-	elif key == KEYS['proxi'] or key == KEYS['proxi'].upper():
+	elif key == KEYS['proxi']:
 		proxyManager.setDebug(viz.TOGGLE)
 		clickSound.play()
+	elif key == KEYS['stereo']:
+		toggleStereo()
 
 
 def onKeyUp(key):
@@ -2330,9 +2338,9 @@ def onJoyButton(e):
 #		mouseTracker.distance = HAND_DISTANCE
 		runFeedbackTask('View reset!')
 		viewChangeSound.play()
-	elif e.button == KEYS['hand']:
-#		mouseTracker.distance = HAND_DISTANCE
-		clickSound.play()
+#	elif e.button == KEYS['hand']:
+##		mouseTracker.distance = HAND_DISTANCE
+#		clickSound.play()
 	elif e.button == KEYS['builder']:
 		if MODE == structures.Mode.Build or MODE == structures.Mode.Edit:
 			cycleMode(structures.Mode.View)
@@ -2358,15 +2366,13 @@ def onJoyButton(e):
 		clickSound.play()
 		
 def onControllerButton(e):
-	KEYS = navigator.KEYS
-	
 	if e.button == KEYS['esc']:
 		if utilityCanvas.getVisible() is True:
 			toggleUtility(False)
 		elif menuCanvas.getVisible() is True:
 			toggleMenu(False)
-#		else:
-#			quitGame()
+		else:
+			quitGame()
 	elif e.button == ',':
 		print navigator.getPosition()
 	elif e.button == KEYS['env']:
@@ -2379,14 +2385,14 @@ def onControllerButton(e):
 #		mouseTracker.distance = HAND_DISTANCE
 		runFeedbackTask('View reset!')
 		viewChangeSound.play()
-	elif e.button == KEYS['hand']:
-#		mouseTracker.distance = HAND_DISTANCE
-		clickSound.play()
+#	elif e.button == KEYS['hand']:
+##		mouseTracker.distance = HAND_DISTANCE
+#		clickSound.play()
 	elif e.button == KEYS['builder']:
 		if MODE == structures.Mode.Build or MODE == structures.Mode.Edit:
 			cycleMode(structures.Mode.View)
 		elif MODE == structures.Mode.View or MODE == structures.Mode.Walk:
-			mouseTracker.distance = HAND_DISTANCE
+#			mouseTracker.distance = HAND_DISTANCE
 			cycleMode(CACHED_BUILD_MODE)
 		clickSound.play()
 	elif e.button == KEYS['viewer']:
@@ -2406,7 +2412,7 @@ def onControllerButton(e):
 		proxyManager.setDebug(viz.TOGGLE)
 		clickSound.play()
 	elif e.button == KEYS['interact']:
-		print(e.button)
+#		print(e.button)
 		pass
 		
 def onMouseWheel(dir):
@@ -2642,12 +2648,40 @@ def onMouseUp(button):
 def controllerRotateTruss(controller):
 	global isgrabbing
 	global grabbedItem
-	if isgrabbing is True:
+	if isgrabbing is True and grabbedItem is not None:		
 		print controller.getEuler()
 		rot = controller.getEuler()
 		rot[0] = 0
 		rot[1] = 0
 		grabbedItem.setEuler(rot)
+		
+		
+def controllerSlideRoot(controller):
+	global SLIDE_VAL
+	global TOP_CACHED_Z
+	global BOT_CACHED_Z
+	global bridge_root
+	
+	if MODE is structures.Mode.View or MODE is structures.Mode.Walk:
+		return
+	
+	if ORIENTATION == structures.Orientation.Top or ORIENTATION == structures.Orientation.Bottom:
+		pos = bridge_root.getGroup().getPosition()
+		if controller.getTrackpad()[1] > 0:
+			pos[2] += SLIDE_INTERVAL
+		elif controller.getTrackpad()[1] < 0:
+			pos[2] -= SLIDE_INTERVAL
+			
+		if ORIENTATION == structures.Orientation.Top:
+			clampedZ = viz.clamp(pos[2],TOP_Z_MIN,SLIDE_MAX)
+			pos[2] = clampedZ
+			TOP_CACHED_Z = pos[2]
+		elif ORIENTATION == structures.Orientation.Bottom:
+			clampedZ = viz.clamp(pos[2],BOT_Z_MIN,SLIDE_MAX)
+			pos[2] = clampedZ
+			BOT_CACHED_Z = pos[2]
+		bridge_root.getGroup().setPosition(pos)
+#		bridge_root.getGroup().setPosition(pos)
 
 def onSlider(obj,pos):
 	global objToRotate
@@ -2792,7 +2826,7 @@ vizact.onbuttonup ( quitButton, clickSound.play )
 #vizact.onbuttonup ( loadButton, loadBridge )
 vizact.onbuttonup ( soundButton, toggleAudio )
 
-FLASH_TIME = 3.0			# Time to flash screen
+FLASH_TIME = 1.5			# Time to flash screen
 
 def CreateFlashQuad():
 	""" Create flash screen quad """
@@ -2857,13 +2891,24 @@ def HighlightTask(highlighter, canvas):
 			canvas_pos = canvas.getPosition(mode = viz.ABS_GLOBAL)
 #			print 'canvas position', canvas_pos 
 #			highlighter.getLineForward().setEnd(intersect_pos[2])
-			x = mathlite.getNewRange(intersect_pos[0], canvas_pos[0]-bb.width*0.5, canvas_pos[0]+bb.width*0.5, 0, 1) 
-			y = mathlite.getNewRange(intersect_pos[1], canvas_pos[1]-bb.height*0.5, canvas_pos[1]+bb.height*0.5, 0, 1)
+			alignment = canvas.getAlignment()
+			
+#			print 'size', bb.width, bb.height
+#			print 'intersect at', intersect_pos
+#			print 'pos', canvas_pos
+			
+			if alignment == viz.ALIGN_CENTER_TOP:
+				x = mathlite.getNewRange(intersect_pos[0], canvas_pos[0]-bb.width*0.5, canvas_pos[0]+bb.width*0.5, 0, 1) 
+				y = mathlite.getNewRange(intersect_pos[1], canvas_pos[1], canvas_pos[1]-bb.height, 1, 0)
+#				y = mathlite.getNewRange(intersect_pos[1], canvas_pos[1]-bb.height*0.5, canvas_pos[1]+bb.height*0.5, 0, 1)			
+			else:
+				x = mathlite.getNewRange(intersect_pos[0], canvas_pos[0]-bb.width*0.5, canvas_pos[0]+bb.width*0.5, 0, 1) 
+				y = mathlite.getNewRange(intersect_pos[1], canvas_pos[1]-bb.height*0.5, canvas_pos[1]+bb.height*0.5, 0, 1)
 #			cursor.setLength(intersect_pos[2])
 #			print 'cursor pos', x, y
 
 			canvas.setCursorPosition([x,y])
-#			print canvas.getCursorPosition()
+#			print 'mapped to cursor', canvas.getCursorPosition()
 			node_name = info.name
 			
 			if last_highlight != node_name:
@@ -2880,7 +2925,10 @@ def RaycastTask(highlighter, canvas):
 			highlightTask = viztask.schedule(HighlightTask(highlighter, canvas))
 			yield None
 			highlightTask.remove()
-		yield None
+		yield None		
+#		else:
+#			yield None
+#			highlightTask.remove()
 			
 def CanvasButtonTask(controller, canvas):
     while True:
@@ -2888,7 +2936,7 @@ def CanvasButtonTask(controller, canvas):
 			# Wait for sensor button 1 to be pressed
 			yield viztask.waitSensorDown(controller, navigator.KEYS['interact'])
 			
-			# Simulate mouse button press on canvas
+			# Simulate mouse button press on canvas	
 			canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.DOWN)
 
 			# Wait for sensor button 1 to be released
@@ -2919,8 +2967,8 @@ def MainTask():
 		bb = menuTabPanel.getBoundingBox()
 #		menuCanvas.setRenderWorld([bb.width * .8, bb.height + 55],[1,viz.AUTO_COMPUTE])
 		menuCanvas.setRenderWorld([bb.width, bb.height],[1,viz.AUTO_COMPUTE])
-		menuTabPanel.selectPanel(2)
-		menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)		
+		menuTabPanel.selectPanel(0)
+#		menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)		
 		
 		# Define globals
 		global highlightTool
@@ -2933,15 +2981,6 @@ def MainTask():
 		viz.callback ( viz.MOUSEDOWN_EVENT, onMouseDown )
 #		viz.callback ( viz.MOUSEWHEEL_EVENT, onMouseWheel )
 #		viz.callback ( viz.SENSOR_UP_EVENT, onJoyButton )
-
-		vizact.onbuttondown ( menuButton, onKeyDown, KEYS['showMenu'] )
-		vizact.onbuttondown ( homeButton, onKeyDown, KEYS['home'] )
-		vizact.onbuttondown ( toggleToolButton, onKeyDown, KEYS['builder'] )
-		vizact.onbuttondown ( viewerModeButton, onKeyDown, KEYS['viewer'] )
-		vizact.onbuttondown ( walkModeButton, onKeyDown, KEYS['walk'] )
-		vizact.onbuttondown ( resetOriButton, onKeyDown, KEYS['reset'] )
-		vizact.onbuttondown ( buildModeButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )
-		vizact.onbuttondown ( toggleOriButton, cycleOrientation, vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )			
 		
 		# Setup navigation
 		import navigation
@@ -2956,7 +2995,7 @@ def MainTask():
 			highlightTool = navigator.getHighlighter()
 			viztask.schedule(RaycastTask(highlightTool, menuCanvas))
 			viztask.schedule(CanvasButtonTask(navigator.getRightController(), menuCanvas))
-			viz.callback ( viz.SENSOR_UP_EVENT, onControllerButton )
+			viz.callback ( viz.SENSOR_DOWN_EVENT, onControllerButton )
 			vizact.onsensorup	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseUp,		navigator.KEYS['interact'] )
 			vizact.onsensordown	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseDown,	navigator.KEYS['interact'] )
 			vizact.onsensordown	( navigator.getLeftController(),	navigator.KEYS['utility'],	toggleUtility )
@@ -2964,7 +3003,8 @@ def MainTask():
 			vizact.onkeydown( navigator.KEYS['orient'],	cycleOrientation, 	vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )
 			vizact.onkeydown( navigator.KEYS['angles'], cycleView, 			vizact.choice([0,1,2,3]) )
 			vizact.onkeydown( navigator.KEYS['stereo'], toggleStereo, 		vizact.choice([False,True]) )			
-			vizact.ontimer(0,controllerRotateTruss, navigator.getRightController())			
+			vizact.ontimer(0,controllerRotateTruss, navigator.getRightController())	
+			vizact.ontimer(0,controllerSlideRoot, navigator.getRightController())
 			navigator.setAsMain()
 		elif oculusConnected and joystickConnected:
 			navigator = navigation.Joyculus()
@@ -3005,6 +3045,7 @@ def MainTask():
 			vizact.whilekeydown( navigator.KEYS['slideFar'],slideRoot,SLIDE_INTERVAL)
 			navigator.setAsMain()					
 
+		KEYS = navigator.KEYS
 		navigator.setOrigin(START_POS,[0,0,0])
 		navigator.reset()
 		
@@ -3019,7 +3060,7 @@ def MainTask():
 #		vizact.ontimer(0,clampTrackerScroll,mouseTracker,SCROLL_MIN,SCROLL_MAX)
 		
 		menuCanvas.setParent(navigator.getLeftController().model)
-		menuCanvas.setPosition([0,0,0.2])
+		menuCanvas.setPosition([0,0.4,0.2])
 		
 		inventoryCanvas.setParent(navigator.getLeftController().model)
 		inventoryCanvas.setPosition([0,0,0.3], mode=viz.ABS_PARENT)
@@ -3063,8 +3104,18 @@ def MainTask():
 		vizact.onbuttonup ( resetButton, clearBridge )
 		vizact.onbuttonup ( resetButton, clickSound.play )
 		
+		vizact.onbuttondown ( menuButton, onKeyDown, KEYS['showMenu'] )
+		vizact.onbuttondown ( homeButton, onKeyDown, KEYS['home'] )
+		vizact.onbuttondown ( toggleToolButton, onKeyDown, KEYS['builder'] )
+		vizact.onbuttondown ( viewerModeButton, onKeyDown, KEYS['viewer'] )
+		vizact.onbuttondown ( walkModeButton, onKeyDown, KEYS['walk'] )
+		vizact.onbuttondown ( resetOriButton, onKeyDown, KEYS['reset'] )
+		vizact.onbuttondown ( buildModeButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )
+		vizact.onbuttondown ( toggleOriButton, cycleOrientation, vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )			
+		
 		#--Show menu
 #		toggleMenu(True)
+		toggleUtility(True)
 		
 		INITIALIZED = True
 		mainTask.kill()
