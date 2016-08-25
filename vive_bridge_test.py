@@ -123,10 +123,12 @@ DESIGNERS_TEXT = '   Dave\n   Tracy'
 PROGRAMMERS_TEXT = '   Justin'
 ARTISTS_TEXT = '   Rakesh\n   Jason\n   Anas'
 
-LEN_MIN = 0.1				# Min length allowed for truss
+LEN_MIN = 1.0				# Min length allowed for truss
 LEN_MAX = 20.0				# Max length allowed for truss
 QTY_MIN = 1					# Min quantity allowed for truss
-QTY_MAX = 20				# Max quantity allowed for truss
+QTY_MAX = 30				# Max quantity allowed for truss
+ORDER_LABEL_LENGTH = 2.5	# Length of order labels
+DONE_BUTTON_LEN = 1.765		# Length of done/confirm button	
 
 GRIDS = []
 
@@ -370,6 +372,7 @@ def toggleCanvas(canvas, value):
 	else:		
 		canvas.visible(False)
 		canvas.setCursorVisible(viz.OFF)
+		canvas.setCursorPosition([1,1])
 		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE, mode = viz.MASK_REMOVE)
 	
 
@@ -435,10 +438,12 @@ orderPanel.getTitleBar().fontSize(28)
 orderPanel.addSeparator()
 # Initialize type
 typeDropList = viz.addDropList()
+typeDropList.setLength(ORDER_LABEL_LENGTH)
 typeDropList.addItem('CHS', 0)
 trussType = orderPanel.addLabelItem('Type', typeDropList)
 # Initialize diameterDropList
 diameterDropList = viz.addDropList()
+diameterDropList.setLength(ORDER_LABEL_LENGTH)
 for member in catalogue_root.iter('member'):
 	diameter = member.get('diameter')
 	diameterDropList.addItem(diameter)
@@ -446,18 +451,26 @@ diameterDropList.select(19)
 diameter = orderPanel.addLabelItem('Diameter (mm)', diameterDropList)
 # Initialize thicknessDropList
 thicknessDropList = viz.addDropList()
+thicknessDropList.setLength(ORDER_LABEL_LENGTH)
 thicknesses = []
 for thickness in catalogue_root[diameterDropList.getSelection()]:
 	thicknesses.append(thickness.text)
 thicknessDropList.addItems(thicknesses)
 thicknessDropList.select(2)
 thickness = orderPanel.addLabelItem('Thickness (mm)', thicknessDropList)
-# Initilize lengthTextbox with default value of 5m
-lengthTextbox = viz.addTextbox()
-lengthTextbox.message('5')
-length = orderPanel.addLabelItem('Length (m)', lengthTextbox)
+## Initilize lengthTextbox with default value of 5m
+#lengthTextbox = viz.addTextbox()
+#lengthTextbox.message('5')
+#length = orderPanel.addLabelItem('Length (m)', lengthTextbox)
+# Initialize lengthSlider with default value of 1
+lengthSlider = viz.addProgressBar('5.0')
+lenProgressPos = mathlite.getNewRange(5.0,LEN_MIN,LEN_MAX,0.0,1.0)
+lengthSlider.set(lenProgressPos)
+lengthSlider.setLength(ORDER_LABEL_LENGTH)
+length = orderPanel.addLabelItem('Length (m)', lengthSlider)
 # Initialize quantitySlider with default value of 1
 quantitySlider = viz.addProgressBar('1')
+quantitySlider.setLength(ORDER_LABEL_LENGTH)
 qtyProgressPos = mathlite.getNewRange(1,QTY_MIN,QTY_MAX,0.0,1.0)
 quantitySlider.set(qtyProgressPos)
 quantity = orderPanel.addLabelItem('Quantity', quantitySlider)
@@ -490,7 +503,7 @@ inventoryRow.addItem(stockMainPanel)
 
 bottomRow = vizdlg.Panel(border=False)
 doneButton = bottomRow.addItem(viz.addButtonLabel('Confirm order and start building in VR'))
-doneButton.length(2)
+doneButton.length(DONE_BUTTON_LEN)
 
 # Add rows to inventory main panel
 inventoryPanel.addItem(inventoryRow)
@@ -632,12 +645,14 @@ def initCanvas():
 #	inspectorCanvas.setRenderWorldOverlay(RESOLUTION,fov=90.0,distance=3.0)
 	inspectorCanvas.setRenderWorld(RESOLUTION,[1,viz.AUTO_COMPUTE])	
 	inspectorCanvas.setCursorVisible(viz.OFF)
+	inspectorCanvas.disable(viz.INTERSECTION)
 	
 	utilityCanvas.setRenderWorld(UTILITY_CANVAS_RES,[1,viz.AUTO_COMPUTE])
 	utilityCanvas.setPosition(0,0,0.5)
 	utilityCanvas.setEuler(0,0,0)
 	utilityCanvas.setCursorPosition([0.5,0.5])
 	utilityCanvas.visible(False)
+	utiiltyCanvas.setCursorSize([2,2])
 #	utilityCanvas.visible(True)
 #	utilityCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)
 	
@@ -649,6 +664,7 @@ def initCanvas():
 	rotationCanvas.setRenderWorld([bb.width,bb.height],[1,viz.AUTO_COMPUTE])
 	rotationCanvas.setPosition(0,0,0)
 	rotationCanvas.setCursorVisible(viz.OFF)
+	rotationCanvas.disable(viz.INTERSECTION)
 	rotationCanvas.visible(False)
 initCanvas()
 
@@ -769,14 +785,16 @@ def addOrder(orderTab,orderList=inventory.OrderList(),orderRow=[],flag=''):
 	
 	_diameter = diameterDropList.getItem(diameterDropList.getSelection())
 	_thickness = thicknessDropList.getItem(thicknessDropList.getSelection())
-	try:
-		_length = viz.clamp(float(lengthTextbox.get()),LEN_MIN,LEN_MAX)
-		_length = round(_length,2)
-	except:
-		runFeedbackTask('Invalid length!')
-		warningSound.play()
-		lengthTextbox.message('')
-		return
+#	try:
+#		_length = viz.clamp(float(lengthTextbox.get()),LEN_MIN,LEN_MAX)
+#		_length = round(_length,2)
+#	except:
+#		runFeedbackTask('Invalid length!')
+#		warningSound.play()
+#		lengthTextbox.message('')
+#		return
+	_length = mathlite.getNewRange(lengthSlider.get(),0.0,1.0,LEN_MIN,LEN_MAX)
+	_length = round(_length,1)
 	_quantity = mathlite.getNewRange(quantitySlider.get(),0.0,1.0,QTY_MIN,QTY_MAX)
 	
 	setattr(newOrder, 'diameter', float(_diameter))
@@ -1196,6 +1214,7 @@ def deleteTruss():
 		cycleMode(structures.Mode.Build)
 		
 	toggleHighlightables()
+	toggleIntersection(True)
 	
 	# Play warning sound
 	warningSound.play()
@@ -1535,6 +1554,10 @@ def toggleUtility(val=viz.TOGGLE):
 	if menuCanvas.getVisible() is True:
 		toggleCanvas(menuCanvas, False)
 	
+	# Disable inventory if active
+	if inventoryCanvas.getVisible() is True:
+		toggleCanvas(inventoryCanvas, False)
+	
 	# If not auto-toggle, manually set visibility
 	if val is not viz.TOGGLE:
 		toggleCanvas(utilityCanvas, val)
@@ -1555,10 +1578,6 @@ def toggleUtility(val=viz.TOGGLE):
 			toggleCanvas(inventoryCanvas, False)
 			
 		hideMenuSound.play()
-
-
-def clampTrackerScroll(tracker,min=0.2,max=20):
-	tracker.distance = viz.clamp(tracker.distance,min,max)
 
 
 def toggleMenu(val=viz.TOGGLE):
@@ -2788,7 +2807,11 @@ def onSlider(obj,pos):
 		quantitySlider.set(pos)
 		displayedQty = int(mathlite.getNewRange(pos,0.0,1.0,QTY_MIN,QTY_MAX))
 		quantitySlider.message(str(displayedQty))
-		
+	if obj == lengthSlider:
+		lengthSlider.set(pos)
+		displayedQty = float(mathlite.getNewRange(pos,0.0,1.0,LEN_MIN,LEN_MAX))
+		displayedQty = round(displayedQty, 1)
+		lengthSlider.message(str(displayedQty))		
 
 def onList(e):
 	if e.object == diameterDropList:
@@ -2956,7 +2979,7 @@ def createConfirmButton():
 		
 	bottomRow.removeItem(doneButton)
 	doneButton = bottomRow.addItem(viz.addButtonLabel('Confirm order'),align=viz.ALIGN_CENTER_TOP)
-	doneButton.length(2)
+	doneButton.length(DONE_BUTTON_LEN)
 	
 	vizact.onbuttonup ( doneButton, populateInventory )
 	vizact.onbuttonup ( doneButton, toggleCanvas, menuCanvas, False )
