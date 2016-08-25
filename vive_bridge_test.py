@@ -168,6 +168,7 @@ SNAP_INTERVAL = 5				# Interval to snap while rotating truss
 SUPPORT_ALPHA = 0.25			# Alpha value for bridge red supports	
 INACTIVE_ALPHA = 0.25			# Alpha value for inactive truss members
 GRID_TAG = 'GRID_TAG'
+GRID_INTERSECT_POINT = [0,0,0]	# Intersection point of grid
 ORIENTATION = structures.Orientation.Side
 MODE = structures.Mode.View
 
@@ -344,6 +345,7 @@ bridge_root = roots.Root()
 bridge_root.getGroup().setPosition(BRIDGE_ROOT_POS)
 bridge_root.getGroup().setEuler(SIDE_VIEW_ROT)
 grid_root = roots.GridRoot(GRID_COLOR)
+grid_root.setIntersectPlaneTag(GRID_TAG)
 info_root = roots.InfoRoot()
 
 # Setup audio
@@ -1001,6 +1003,8 @@ def createTruss(order=Order(),path=''):
 	truss.orientation = ORIENTATION
 	truss.level = structures.Level.Horizontal
 	truss.isNewMember = False
+	truss.disable(viz.INTERSECTION)
+#	truss.disable(viz.INTERSECT_INFO_OBJECT)
 	
 	truss.setScale([truss.length,truss.diameter*0.001,truss.diameter*0.001])	
 
@@ -1050,6 +1054,8 @@ def createTrussNew(order=Order(),path='',loading=False):
 	truss.quantity = int(order.quantity)
 	truss.orientation = ORIENTATION
 	truss.level = structures.Level.Horizontal
+	truss.disable(viz.INTERSECTION)
+#	truss.disable(viz.INTERSECT_INFO_OBJECT)
 	
 	truss.setScale([truss.length,truss.diameter*0.001,truss.diameter*0.001])	
 	
@@ -1332,6 +1338,7 @@ def clearMembers():
 	runFeedbackTask('Bridge cleared!')
 	hideMenuSound.play()
 
+
 def toggleAudio(value=viz.TOGGLE):
 	global ISMUTED
 	if ISMUTED:
@@ -1359,6 +1366,7 @@ def toggleEnvironment(value=viz.TOGGLE):
 		runFeedbackTask('Environment OFF')
 		hideMenuSound.play()
 
+
 def toggleGrid(value=viz.TOGGLE):
 	grid_root.visible(value)
 	
@@ -1369,6 +1377,7 @@ def toggleGrid(value=viz.TOGGLE):
 	else:
 		runFeedbackTask('Grid OFF')
 		hideMenuSound.play()
+
 
 def toggleMembers(side=True,sideClones=True,top=True,bottom=True):
 		for member in SIDE_MEMBERS:
@@ -1395,6 +1404,17 @@ def toggleMembers(side=True,sideClones=True,top=True,bottom=True):
 			members.alpha(1)
 		for nodes in PROXY_NODES:
 			nodes.alpha(1)
+
+
+def toggleIntersection(intersect):
+	if intersect is True:
+		for members in BUILD_MEMBERS:
+			members.enable(viz.INTERSECTION)
+			members.enable(viz.INTERSECT_INFO_OBJECT)
+	else:
+		for members in BUILD_MEMBERS:
+			members.disable(viz.INTERSECTION)
+			members.disable(viz.INTERSECT_INFO_OBJECT)
 
 
 def toggleHighlightables(val=True):
@@ -1668,16 +1688,18 @@ def onHighlightGrab():
 	global grabbedItem
 	global isgrabbing
 	if grabbedItem is not None and isgrabbing is True:	
-		raycaster = highlightTool.getRayCaster()
-		startPos = raycaster.getPosition()
-#		print startPos
-		dist = mathlite.math.fabs(startPos[2] - GRID_Z)
-#		print dist
-#		newPoint = raycaster.getLineForward(length=dist).getEnd()
-#		print newPoint
-		newPos = raycaster.getLineForward().endFromDistance(dist)
-		newPos[2] = GRID_Z
-		grabbedItem.setPosition(newPos)
+#		raycaster = highlightTool.getRayCaster()
+#		startPos = raycaster.getPosition()
+##		print startPos
+#		dist = mathlite.math.fabs(startPos[2] - GRID_Z)
+##		print dist
+##		newPoint = raycaster.getLineForward(length=dist).getEnd()
+##		print newPoint
+#		newPos = raycaster.getLineForward().endFromDistance(dist)
+#		newPos[2] = GRID_Z
+#		grabbedItem.setPosition(newPos)
+		grabbedItem.setPosition(GRID_INTERSECT_POINT)
+
 vizact.ontimer(0,onHighlightGrab)
 
 def onHighlightGrab2():
@@ -2133,6 +2155,9 @@ def cycleMode(mode=structures.Mode.Add):
 		highlightTool.removeItems(PROXY_NODES)
 		highlightTool.setItems([])
 		
+		# Disable truss intersection
+		toggleIntersection(False)
+		
 		#--If cached mode is View or Walk, reset to build position
 		if CACHED_MODE is structures.Mode.View or CACHED_MODE is structures.Mode.Walk:
 			navigator.setPosition(START_POS)
@@ -2162,6 +2187,9 @@ def cycleMode(mode=structures.Mode.Add):
 		highlightTool.setItems(highlightables)
 		SHOW_HIGHLIGHTER = True
 		
+		# Enable truss intersection
+		toggleIntersection(True)
+		
 		#--If cached mode is View or Walk, reset to build position
 		if CACHED_MODE is structures.Mode.View or CACHED_MODE is structures.Mode.Walk:
 			navigator.setPosition(START_POS)
@@ -2174,9 +2202,12 @@ def cycleMode(mode=structures.Mode.Add):
 	elif MODE == structures.Mode.Add:
 		toggleCanvas(inventoryCanvas, False)
 		
+		# Disable truss intersection
+		toggleIntersection(False)
+		
 		# Show highlighter
 		SHOW_HIGHLIGHTER = True
-		
+				
 	elif MODE == structures.Mode.View:
 		toggleCanvas(inventoryCanvas, False)
 		
@@ -2197,6 +2228,9 @@ def cycleMode(mode=structures.Mode.Add):
 		highlightTool.removeItems(BUILD_MEMBERS)
 		highlightTool.removeItems(PROXY_NODES)
 		highlightTool.setItems([])
+		
+		# Disable truss intersection
+		toggleIntersection(False)		
 		
 		# Hide supports
 		for model in supports:
@@ -2224,6 +2258,9 @@ def cycleMode(mode=structures.Mode.Add):
 		highlightTool.removeItems(BUILD_MEMBERS)
 		highlightTool.removeItems(PROXY_NODES)
 		highlightTool.setItems([])
+		
+		# Disable truss intersection
+		toggleIntersection(False)		
 		
 		# Hide supports
 		for model in supports:
@@ -2264,7 +2301,7 @@ def cycleView(index):
 
 
 # Setup Callbacks and Events
-def onKeyDown(key):
+def onKeyDown(key):	
 	KEYS = navigator.KEYS
 	
 	if key == KEYS['esc']:
@@ -2327,8 +2364,6 @@ def onKeyUp(key):
 
 
 def onJoyButton(e):
-	KEYS = navigator.KEYS
-	
 	if e.button == KEYS['esc']:
 		if utilityCanvas.getVisible() is True:
 			toggleUtility(False)
@@ -2483,7 +2518,7 @@ def slideRootHat():
 			pos[2] = clampedZ
 			BOT_CACHED_Z = pos[2]
 		bridge_root.getGroup().setPosition(pos)
-#		bridge_root.getGroup().setPosition(pos)
+		
 	
 def onHatChange(e):
 	global SLIDE_VAL
@@ -2636,6 +2671,10 @@ def onMouseUp(button):
 			PRE_SNAP_ROT = grabbedItem.getEuler()
 			SNAP_TO_POS = PRE_SNAP_POS	# Wrong value to snap to
 			grabbedRotation = PRE_SNAP_ROT
+			
+			# Toggle visibility
+			grabbedItem.visible(False)
+			
 			print 'MouseUp: PRE_SNAP_POS',PRE_SNAP_POS,' | SNAP_TO_POS',SNAP_TO_POS
 			
 		#--Release objects
@@ -2958,11 +2997,13 @@ def HighlightTask(highlighter, canvas):
 	finally:
 		pass
 
+
 def RaycastTask(highlighter, canvas):
 	while True:
 		highlightTask = viztask.schedule(HighlightTask(highlighter, canvas))
 		yield None
 		highlightTask.remove()
+		
 			
 def CanvasButtonTask(controller, canvas):
     while True:
@@ -2979,6 +3020,7 @@ def CanvasButtonTask(controller, canvas):
 			# Simulate mouse button release on canvas	
 			canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.UP)
 		yield None
+		
 		
 # Schedule tasks
 def MainTask():
@@ -3006,15 +3048,7 @@ def MainTask():
 		
 		# Define globals
 		global highlightTool
-		global navigator
-		
-		# Setup callbacks
-		viz.callback ( viz.KEYDOWN_EVENT,onKeyDown )
-#		viz.callback ( viz.KEYDOWN_EVENT, onKeyDown )
-		viz.callback ( viz.MOUSEUP_EVENT, onMouseUp )
-		viz.callback ( viz.MOUSEDOWN_EVENT, onMouseDown )
-#		viz.callback ( viz.MOUSEWHEEL_EVENT, onMouseWheel )
-#		viz.callback ( viz.SENSOR_UP_EVENT, onJoyButton )
+		global navigator	
 		
 		# Setup navigation
 		import navigation
@@ -3137,6 +3171,14 @@ def MainTask():
 		#--Show initial info message
 		info_root.showInfoMessage(INITIAL_MESSAGE)
 		
+		# Setup callbacks
+		viz.callback ( viz.KEYDOWN_EVENT,onKeyDown )
+#		viz.callback ( viz.KEYDOWN_EVENT, onKeyDown )
+		viz.callback ( viz.MOUSEUP_EVENT, onMouseUp )
+		viz.callback ( viz.MOUSEDOWN_EVENT, onMouseDown )
+#		viz.callback ( viz.MOUSEWHEEL_EVENT, onMouseWheel )
+#		viz.callback ( viz.SENSOR_UP_EVENT, onJoyButton )
+
 		#--Button callbacks
 		vizact.onbuttonup ( saveButton, SaveData )
 		vizact.onbuttonup ( loadButton, loadBridge )
@@ -3156,21 +3198,13 @@ def MainTask():
 		toggleMenu(True)
 #		toggleUtility(True)
 		
-		# Plane test
-		import vizshape
-		plane = vizshape.addPlane(size=(20,10))
-		plane.setPosition(0,5,-5)
-		plane.setEuler(0,-90,0)
-		plane.tag = GRID_TAG
-		def getIntersectInfo():
-			info = navigator.IntersectController(navigator.getRightController())
-			print info.intersectPoint
 		vizact.ontimer(0,getIntersectInfo)
 		
 		INITIALIZED = True
 		mainTask.kill()
 				
 mainTask = viztask.schedule( MainTask() )
+
 		
 # Pre-load sounds
 viz.playSound('./resources/sounds/return_to_holodeck.wav',viz.SOUND_PRELOAD)
@@ -3184,3 +3218,16 @@ viz.playSound('./resources/sounds/out_of_bounds_warning.wav',viz.SOUND_PRELOAD)
 
 def getAvatarOrientation(obj):
 	print 'Pos:',obj.getPosition(),'Rot:',obj.getEuler()
+	
+	
+def getIntersectInfo():
+	global GRID_INTERSECT_POINT
+	info = navigator.IntersectController(navigator.getRightController())
+	try:
+		if hasattr(info.object,'tag'):
+			if info.object.tag is GRID_TAG:
+				print info.intersectPoint, GRID_TAG
+				GRID_INTERSECT_POINT = info.intersectPoint
+				GRID_INTERSECT_POINT[2] = GRID_Z
+	except:
+		pass

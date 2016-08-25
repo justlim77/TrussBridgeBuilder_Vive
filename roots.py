@@ -59,6 +59,15 @@ class GridRoot(Root):
 #		self._controlsQuad.setParent(self._root)
 ##		self._controlsQuad.disable(viz.LIGHTING)
 		
+		# Create intersection plane
+		self._plane = vizshape.addPlane(size=(20,10))
+		self._plane.setPosition(0,5,-5)
+		self._plane.setEuler(0,-90,0)
+		self._plane.tag = 'NONE'
+		self._plane.alpha(0.5)
+		self._plane.hint(viz.OPTIMIZE_INTERSECT_HINT)
+		self._plane.setParent(self._root)
+		
 		# Create floating measurements
 		self._span_text = viz.addText3D('< 20 meters >',pos=[0,11,-5],scale=[1,1,1],parent=self._root,align=viz.ALIGN_CENTER)
 		self._span_text_shadow = viz.addText3D('< 20 meters >',parent=self._span_text,align=viz.ALIGN_CENTER)
@@ -94,6 +103,13 @@ class GridRoot(Root):
 	def setInfoMessage(self, message):
 		self._info_text.message(message)
 		self._info_text_shadow.message(message)
+		
+	def setIntersectPlaneTag(self,tag):
+		self._plane.tag = tag
+		
+	def setIntersectPlaneAlpha(self,alpha):
+		self._plane.alpha(alpha)
+		
 
 class InfoRoot(Root):
 	def __init__(self,textColor=viz.WHITE,shadowColor=viz.BLACK):
@@ -106,6 +122,8 @@ class InfoRoot(Root):
 		self._info_text_shadow.setPosition([0,0,0.2])
 		self._info_text_shadow.color(shadowColor)
 		self._info_text_shadow.alpha(0.75)
+		self._info_text.disable(viz.INTERSECTION)
+		self._info_text_shadow.disable(viz.INTERSECTION)
 			
 	def showInfoMessage(self, message='',val=True):
 		self._info_text.message(message)
@@ -171,12 +189,12 @@ if __name__ == '__main__':
 	ORIGIN = [0,5,-17]
 	
 	gridRoot = GridRoot()
-	gridRoot.getGroup().disable(viz.INTERSECT_INFO_OBJECT)
+	gridRoot.getGroup().disable(viz.INTERSECTION)
 	viz.MainView.setPosition(ORIGIN)	
 	
 #	bridgeRoot = BridgeRoot()
 	environment_root = EnvironmentRoot()
-	environment_root.getGroup().disable(viz.INTERSECT_INFO_OBJECT)
+	environment_root.getGroup().disable(viz.INTERSECTION)
 #	wave_M = viz.addChild('resources/wave.osgb',cache=viz.CACHE_CLONE,pos=([0,0.75,0]),parent=environment_root)
 #	wave_M.setAnimationSpeed(0.02)
 #	wave_B = viz.addChild('resources/wave.osgb',cache=viz.CACHE_CLONE,pos=([0,0.75,-50]),parent=environment_root)
