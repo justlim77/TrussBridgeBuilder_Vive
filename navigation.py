@@ -133,6 +133,10 @@ class Navigator(object):
 	def reset(self):
 		self.NODE.setPosition(self.ORIGIN_POS)
 		self.NODE.setEuler(self.ORIGIN_ROT)
+	
+	def resetOrientation(self):
+		"""Implement if using HMD"""
+		pass
 
 	def updateView(self):
 		pass
@@ -467,6 +471,7 @@ class SteamVR(Navigator):
 					,'home'		: steamvr.BUTTON_GRIP
 					,'utility'	: steamvr.BUTTON_MENU		#0
 					,'reset'	: steamvr.BUTTON_GRIP		#1
+					,'reorient'	: steamvr.BUTTON_GRIP
 					,'showMenu' : ' '
 					,'down'		: 2
 					,'orient'	: 3
@@ -556,7 +561,8 @@ class SteamVR(Navigator):
 			self.HIGHLIGHTER.getHighlight().setColor(viz.CYAN)
 			
 			# Disable left controller line
-			self.LEFT_CONTROLLER.line.visible(True)
+			self.LEFT_CONTROLLER.line.visible(False)
+			
 #				highlightLink = viz.link(self.getRightController().link,self.highlightTool)
 #			def updateHighlightTool(tool):
 #				tool.highlight()
@@ -572,6 +578,9 @@ class SteamVR(Navigator):
 		
 	def getRightController(self):
 		return self.RIGHT_CONTROLLER
+	
+	def resetOrientation(self):
+		self.hmd.getSensor().reset()
 		
 	def valid(self):
 		if not self.hmd.getSensor().valid:
