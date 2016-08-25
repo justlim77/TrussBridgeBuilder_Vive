@@ -281,22 +281,6 @@ def initProxy():
 	return proxyManager
 	
 	
-def initTracker(distance=0.5):
-	"""Initialize scroll wheel tracker"""
-	from vizconnect.util import virtual_trackers
-	tracker = virtual_trackers.ScrollWheel(followMouse=True)
-	tracker.distance = distance
-	return tracker
-
-
-def initLink(modelPath,tracker):
-	"""Initialize hand link with tracker and link group with main view"""
-	model = viz.addChild(modelPath)
-	link = viz.link(tracker,model)
-#	link.postMultLinkable(viz.MainView)
-	return link
-	
-	
 def initLighting():
 	# Disable the head lamps since we're doing lighting ourselves
 	for window in viz.getWindowList():
@@ -314,6 +298,7 @@ def initLighting():
 #	sky_light2.ambient([0.8]*3)
 #	vizfx.setAmbientColor([0.3,0.3,0.4])
 
+
 # Create effect for highlighting objects
 code = """
 Effect {
@@ -327,9 +312,11 @@ Effect {
 """
 highlightEffect = viz.addEffect(code)
 
+
 def getCatalogue(path):
 	"""Parse catalogue from data subdirectory"""
 	return ET.parse(str(path)).getroot()
+
 
 # Initialize
 initScene(RESOLUTION,MULTISAMPLING,FOV,STENCIL,STEREOMODE,FULLSCREEN,(0.1, 0.1, 0.1, 1.0))
@@ -383,7 +370,7 @@ def toggleCanvas(canvas, value):
 	else:		
 		canvas.visible(False)
 		canvas.setCursorVisible(viz.OFF)
-#		canvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
+		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE, mode = viz.MASK_REMOVE)
 	
 
 # Add environment effects
@@ -566,9 +553,9 @@ walkModeButton = viz.addButton(parent=utilityCanvas)
 walkModeButton.texture(viz.addTexture('resources/gui/walking-128.png'))
 walkModeButton.setScale(BUTTON_SCALE,BUTTON_SCALE)
 # Toggle tool button
-toggleToolButton = viz.addButton(parent=utilityCanvas)
-toggleToolButton.texture(viz.addTexture('resources/gui/tools-128.png'))
-toggleToolButton.setScale(BUTTON_SCALE,BUTTON_SCALE)
+editModeButton = viz.addButton(parent=utilityCanvas)
+editModeButton.texture(viz.addTexture('resources/gui/tools-128.png'))
+editModeButton.setScale(BUTTON_SCALE,BUTTON_SCALE)
 # Toggle orientation button
 toggleOriButton = viz.addButton(parent=utilityCanvas)
 toggleOriButton.texture(viz.addTexture('resources/gui/rotate-128.png'))
@@ -578,7 +565,7 @@ resetOriButton = viz.addButton(parent=utilityCanvas)
 resetOriButton.texture(viz.addTexture('resources/gui/compass-128.png'))
 resetOriButton.setScale(BUTTON_SCALE,BUTTON_SCALE)
 
-utilityButtons = ( [toggleOriButton,toggleToolButton,buildModeButton,viewerModeButton,walkModeButton,menuButton,homeButton,resetOriButton] )
+utilityButtons = ( [toggleOriButton,editModeButton,buildModeButton,viewerModeButton,walkModeButton,menuButton,homeButton,resetOriButton] )
 for i, button in enumerate(utilityButtons):
 	button.setPosition(0.5 + points[i][0], 0.5 + points[i][1])
 	
@@ -636,7 +623,7 @@ def initCanvas():
 	menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
 	
 	updateResolution(dialog,dialogCanvas)
-	dialogCanvas.setPosition(0,2,3)
+	dialogCanvas.setPosition(0,0,0)
 	dialogCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL)
 	
 	updateResolution(feedbackQuad,feedbackCanvas)
@@ -661,6 +648,7 @@ def initCanvas():
 	bb = rotationPanel.getBoundingBox()
 	rotationCanvas.setRenderWorld([bb.width,bb.height],[1,viz.AUTO_COMPUTE])
 	rotationCanvas.setPosition(0,0,0)
+	rotationCanvas.setCursorVisible(viz.OFF)
 	rotationCanvas.visible(False)
 initCanvas()
 
@@ -717,7 +705,8 @@ def showdialog(message,func):
 	dialogCanvas.setRenderWorld([bb.width, bb.height], [1,viz.AUTO_COMPUTE])	
 	dialogCanvas.visible(viz.ON)	
 	dialogCanvas.setParent(menuCanvas)
-	dialogCanvas.setPosition([0,0,0], mode=viz.ABS_PARENT)
+	dialogCanvas.setPosition([0,-0.5,-0.1], mode=viz.REL_LOCAL)
+	print dialogCanvas.getPosition()
 	
 	warningSound.play()
 	
@@ -731,7 +720,7 @@ def showdialog(message,func):
 		dialogCanvas.visible(viz.OFF)
 		
 		if menuCanvas.getVisible() is True:
-			menuCanvas.setMouseStyle(viz.CANVAS_MOUSE_VIRTUAL | viz.CANVAS_MOUSE_BUTTON)
+			toggleCanvas(menuCanvas, True)
 		if MODE is structures.Mode.Build:
 			toggleCanvas(inventoryCanvas, True)
 		
@@ -1924,7 +1913,8 @@ def rotateTruss():
 		updateAngle(objToRotate,rotationSlider,rotationLabel)
 	else:
 		#--Hide rotation GUI
-		rotationCanvas.visible(False)
+#		rotationCanvas.visible(False)
+		pass
 vizact.ontimer(0,rotateTruss)
 
 global isSpinning
@@ -2139,7 +2129,8 @@ def cycleMode(mode=structures.Mode.Add):
 		
 		#--Hide menu and inspector
 		toggleCanvas(menuCanvas, False)
-		toggleCanvas(inspectorCanvas, False)
+		toggleCanvas(inspectorCanvas, False)	
+		rotationCanvas.visible(False)
 		
 		if info_root.getVisible() is True:
 			info_root.visible(False)
@@ -2160,7 +2151,7 @@ def cycleMode(mode=structures.Mode.Add):
 			navigator.setPosition(START_POS)
 			navigator.setEuler([0,0,0])
 		
-		navigator.setNavAbility()
+#		navigator.setNavAbility()
 		
 		cycleOrientation(ORIENTATION)
 		
@@ -2175,6 +2166,7 @@ def cycleMode(mode=structures.Mode.Add):
 		
 		# Enable inspector and rotation labels
 		inspectorCanvas.visible(True)
+		rotationCanvas.visible(True)
 		
 		# Clear highlighter
 		highlightTool.clear()
@@ -2192,14 +2184,16 @@ def cycleMode(mode=structures.Mode.Add):
 			navigator.setPosition(START_POS)
 			navigator.setEuler([0,0,0])		
 		
-		navigator.setNavAbility()
+#		navigator.setNavAbility()
 		
 		cycleOrientation(ORIENTATION)
 		
 	elif MODE == structures.Mode.Add:
 		toggleCanvas(inventoryCanvas, False)
 		
-		# Disable truss intersection
+		rotationCanvas.visible(True)
+		
+		# Disable truss intersection		
 		toggleIntersection(False)
 		
 		# Show highlighter
@@ -2207,13 +2201,14 @@ def cycleMode(mode=structures.Mode.Add):
 				
 	elif MODE == structures.Mode.View:
 		toggleCanvas(inventoryCanvas, False)
+		rotationCanvas.visible(False)
 		
 		toggleGrid(False)
 		toggleEnvironment(True)
 		proxyManager.setDebug(False)
 		bridge_root.getGroup().setPosition(BRIDGE_ROOT_POS)
 		bridge_root.getGroup().setEuler(SIDE_VIEW_ROT)
-		navigator.setNavAbility()
+#		navigator.setNavAbility()
 		
 		# Show all truss members
 		toggleMembers()
@@ -2235,7 +2230,7 @@ def cycleMode(mode=structures.Mode.Add):
 			
 	elif MODE == structures.Mode.Walk:
 		toggleCanvas(inventoryCanvas, False)
-		
+		rotationCanvas.visible(False)
 		toggleEnvironment(True)
 		toggleGrid(False)
 		proxyManager.setDebug(False)
@@ -2265,9 +2260,6 @@ def cycleMode(mode=structures.Mode.Add):
 	
 	#--Store new mode in cache
 	CACHED_MODE = MODE
-	
-	print str(MODE.name) + ' Mode'
-	print 'inventory canvas ', inventoryCanvas.getVisible()
 	
 	# UI/Sound feedback
 	runFeedbackTask(str(MODE.name) + ' Mode')
@@ -2318,22 +2310,18 @@ def onKeyDown(key):
 		toggleEnvironment()	
 	elif key == KEYS['reset']:
 		try:
-			runFeedbackTask('Orientation reset!')
-			clickSound.play()
+			navigator.reset()
+			runFeedbackTask('View reset!')
+			viewChangeSound.play()
 		except:
 			runFeedbackTask('No headset!')
 			warningSound.play()
-			print 'Reset orientation failed: Unable to get Oculus Rift sensor!'
-#	elif key == KEYS['hand'] or key == KEYS['hand'].upper():
-##		mouseTracker.distance = HAND_DISTANCE
-#		clickSound.play()
+			print 'Unable to get SteamVR sensor!'
 	elif key == KEYS['builder']:
 		cycleMode(structures.Mode.Edit)
-#		mouseTracker.distance = HAND_DISTANCE
 		clickSound.play()
 	elif key == KEYS['viewer']:
 		cycleMode(structures.Mode.View)
-#		mouseTracker.distance = HAND_DISTANCE
 		clickSound.play()
 	elif key == KEYS['walk']:
 		cycleMode(structures.Mode.Walk)
@@ -2408,6 +2396,8 @@ def onJoyButton(e):
 		clickSound.play()
 		
 def onControllerButton(e):
+	KEYS = navigator.KEYS
+	
 	if e.button == KEYS['esc']:
 		if utilityCanvas.getVisible() is True:
 			toggleUtility(False)
@@ -2755,7 +2745,8 @@ def controllerRotateTruss(controller):
 			# Create smooth rotate action
 			rotateAction = vizact.spinTo(euler=newRot,time=0.1,interpolate=vizact.easeInOutCubic)
 			grabbedItem.addAction(rotateAction)
-				
+		
+		updateAngle(grabbedItem,rotationSlider,rotationLabel)
 		
 def controllerSlideRoot(controller):
 	global SLIDE_VAL
@@ -3175,7 +3166,6 @@ def MainTask():
 		rotationCanvas.setPosition([0,0.1,2], mode=viz.REL_PARENT)
 		
 		inspectorCanvas.setParent(navigator.getLeftController().model)
-#		inspectorCanvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
 		inspectorCanvas.setPosition([0,0.1,0.01], mode=viz.REL_PARENT)
 		
 		# Setup utility canvas
@@ -3199,7 +3189,7 @@ def MainTask():
 		info_root.showInfoMessage(INITIAL_MESSAGE)
 		
 		# Setup callbacks
-		viz.callback ( viz.KEYDOWN_EVENT,onKeyDown )
+		viz.callback ( viz.KEYDOWN_EVENT, onKeyDown )
 #		viz.callback ( viz.KEYDOWN_EVENT, onKeyDown )
 		viz.callback ( viz.MOUSEUP_EVENT, onMouseUp )
 		viz.callback ( viz.MOUSEDOWN_EVENT, onMouseDown )
@@ -3214,18 +3204,22 @@ def MainTask():
 		
 		vizact.onbuttondown ( menuButton, onKeyDown, KEYS['showMenu'] )
 		vizact.onbuttondown ( homeButton, onKeyDown, KEYS['home'] )
-		vizact.onbuttondown ( toggleToolButton, onKeyDown, KEYS['builder'] )
+		vizact.onbuttondown ( editModeButton, onKeyDown, KEYS['builder'] )
 		vizact.onbuttondown ( viewerModeButton, onKeyDown, KEYS['viewer'] )
 		vizact.onbuttondown ( walkModeButton, onKeyDown, KEYS['walk'] )
 		vizact.onbuttondown ( resetOriButton, onKeyDown, KEYS['reset'] )
-		vizact.onbuttondown ( buildModeButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )
+		vizact.onbuttondown ( buildModeButton, cycleMode, structures.Mode.Build )
+#		vizact.onbuttondown ( buildModeButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )		
 		vizact.onbuttondown ( toggleOriButton, cycleOrientation, vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )			
+		
+		vizact.ontimer(0,getIntersectInfo)
 		
 		#--Show menu
 		toggleMenu(True)
 #		toggleUtility(True)
 		
-		vizact.ontimer(0,getIntersectInfo)
+		runFeedbackTask('Initialized')
+		
 		
 		INITIALIZED = True
 		mainTask.kill()
@@ -3253,7 +3247,7 @@ def getIntersectInfo():
 	try:
 		if hasattr(info.object,'tag'):
 			if info.object.tag is GRID_TAG:
-				print info.intersectPoint, GRID_TAG
+#				print info.intersectPoint, GRID_TAG
 				GRID_INTERSECT_POINT = info.intersectPoint
 				GRID_INTERSECT_POINT[2] = GRID_Z
 	except:

@@ -464,7 +464,7 @@ class SteamVR(Navigator):
 					,'camera'	: 'c'
 					,'elevate'	: steamvr.BUTTON_TRACKPAD	#4	
 					,'restart'	: viz.KEY_HOME
-					,'home'		: viz.KEY_HOME
+					,'home'		: steamvr.BUTTON_GRIP
 					,'utility'	: steamvr.BUTTON_MENU		#0
 					,'reset'	: steamvr.BUTTON_GRIP		#1
 					,'showMenu' : ' '
@@ -610,8 +610,8 @@ class SteamVR(Navigator):
 		self.CAN_ELEVATE = False
 		
 		vizact.ontimer(0,self.updateView)
-		vizact.onsensordown(self.getLeftController(), self.KEYS['reset'], self.reset) 
-		vizact.onsensordown(self.getRightController(), self.KEYS['reset'], self.reset) 
+#		vizact.onsensordown(self.getLeftController(), self.KEYS['reset'], self.reset) 
+#		vizact.onsensordown(self.getRightController(), self.KEYS['reset'], self.reset) 
 		def ToggleElevation(val):
 			self.CAN_ELEVATE = val
 			print self.CAN_ELEVATE
