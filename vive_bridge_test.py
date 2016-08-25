@@ -4,17 +4,17 @@
 [ Controls ]
 
 [ General ]
-[ JOYBUTTON2 ]---------------------Toggle Main Menu
-[ MIDDLE MOUSE CLICK ]---------Toggle Utility Menu
-[ JOYCURSOR LEFT/RIGHT ]-----Cycle between menu tabs
-[ ESC KEY ]----------------------------Close Menu / Quit Application
+
+[ LEFT TRIGGER ]---------Toggle Utility Menu
 
 [ Movement ]
+
 [ VR HEADSET ]----------------------Look around
-[ JOYSTICK ]--------------------------Navigate
-[ JOYBUTTON 5/3 ]-----------------Lower/Raise elevation
+[ LEFT TRACKPAD ]--------------------------Strafe
+[ PRESS LEFT TRACKPAD ]-----------------Lower/Raise elevation
 
 [ Build | Edit ]
+
 [ JOYBUTTON6 ]---------------------Cycle between Edit and Build Modes
 [ JOYBUTTON4 ]---------------------Cycle between Side, Top, and Bottom Orientations
 [ JOYCURSOR UP/DOWN]---------Slide bridge away or towards in Top or Bottom Orientation
@@ -1003,8 +1003,6 @@ def createTruss(order=Order(),path=''):
 	truss.orientation = ORIENTATION
 	truss.level = structures.Level.Horizontal
 	truss.isNewMember = False
-	truss.disable(viz.INTERSECTION)
-#	truss.disable(viz.INTERSECT_INFO_OBJECT)
 	
 	truss.setScale([truss.length,truss.diameter*0.001,truss.diameter*0.001])	
 
@@ -1054,8 +1052,6 @@ def createTrussNew(order=Order(),path='',loading=False):
 	truss.quantity = int(order.quantity)
 	truss.orientation = ORIENTATION
 	truss.level = structures.Level.Horizontal
-	truss.disable(viz.INTERSECTION)
-#	truss.disable(viz.INTERSECT_INFO_OBJECT)
 	
 	truss.setScale([truss.length,truss.diameter*0.001,truss.diameter*0.001])	
 	
@@ -1698,20 +1694,13 @@ def onHighlightGrab():
 #		newPos = raycaster.getLineForward().endFromDistance(dist)
 #		newPos[2] = GRID_Z
 #		grabbedItem.setPosition(newPos)
+			
+#		if grabbedItem.getVisible() is False:
+#			grabbedItem.visible(True)
+			
 		grabbedItem.setPosition(GRID_INTERSECT_POINT)
 
 vizact.ontimer(0,onHighlightGrab)
-
-def onHighlightGrab2():
-	global grabbedItem
-	global isgrabbing
-	pos = []
-	object = viz.MainWindow.pick(info=True,pos=(0.5,0.5))
-	if object.valid:
-		pos = object.point
-	if grabbedItem is not None and isgrabbing is True:	
-		grabbedItem.setPosition(pos)
-#vizact.ontimer(0,onHighlightGrab2)
 
 
 def onRelease(e=None):
@@ -1823,6 +1812,7 @@ def onRelease(e=None):
 		cycleMode(structures.Mode.Build)
 	else:
 		highlightTool.setItems(getOrientationHighlightables())
+		toggleIntersection(True)
 
 
 def cloneSide(truss):
@@ -2659,6 +2649,13 @@ def onMouseUp(button):
 			#--Disable highlighting
 			toggleHighlightables(False)
 			
+			# Toggle visibility for intersection refresh
+			toggleIntersection(False)
+#			grabbedItem.visible(False)
+#			viztask.schedule( delayedIntersection(True) )
+#			viztask.schedule( delayedVisibility(grabbedItem, True) )
+
+			
 			# Enable truss member target nodes
 			proxyManager.addTarget(grabbedItem.targetNodes[0])
 			proxyManager.addTarget(grabbedItem.targetNodes[1])
@@ -2672,8 +2669,6 @@ def onMouseUp(button):
 			SNAP_TO_POS = PRE_SNAP_POS	# Wrong value to snap to
 			grabbedRotation = PRE_SNAP_ROT
 			
-			# Toggle visibility
-			grabbedItem.visible(False)
 			
 			print 'MouseUp: PRE_SNAP_POS',PRE_SNAP_POS,' | SNAP_TO_POS',SNAP_TO_POS
 			
@@ -2693,6 +2688,17 @@ def onMouseUp(button):
 	if button == navigator.KEYS['rotate']:
 		if grabbedItem is not None:			
 			deleteTruss()
+
+
+def delayedVisibility(object, visibility, delay=0.1):
+	yield viztask.waitTime(delay)
+	object.visible(visibility)
+	print 'visibility set to ', visibility, 'after ', delay
+	
+def delayedIntersection(intersect, delay=0.11):
+	yield viztask.waitTime(delay)
+	toggleIntersection(intersect)
+	print 'intersection set to ', intersect, 'after ', delay
 
 def controllerDeleteTruss():
 	global grabbedItem
