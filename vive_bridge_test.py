@@ -163,7 +163,7 @@ TOP_Z_MIN = -4					# Minimum z-position of Top Bridge Root
 BOT_CACHED_Z = -5				# Cache z-position of Bot Bridge View
 BOT_Z_MIN = -5					# Minimum z-position of Bottom Bridge Root
 SLIDE_MAX = 100					# Max z-position of bridge root sliding
-SLIDE_INTERVAL = 0.05			# Interval to slide bridge root in TOP/BOTTOM View
+SLIDE_INTERVAL = 0.01			# Interval to slide bridge root in TOP/BOTTOM View
 SNAP_INTERVAL = 5				# Interval to snap while rotating truss
 SUPPORT_ALPHA = 0.25			# Alpha value for bridge red supports	
 INACTIVE_ALPHA = 0.25			# Alpha value for inactive truss members
@@ -375,13 +375,15 @@ def updateResolution(panel,canvas):
 def updateMouseStyle(canvas):
 	canvas.setMouseStyle(viz.CANVAS_MOUSE_MOVE)
 
+
 def toggleCanvas(canvas, value):
 	if(value is True):
 		canvas.visible(True)
 		canvas.setMouseStyle(viz.CANVAS_MOUSE_BUTTON | viz.CANVAS_MOUSE_VISIBLE)
 	else:		
 		canvas.visible(False)
-		canvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
+		canvas.setCursorVisible(viz.OFF)
+#		canvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE)
 	
 
 # Add environment effects
@@ -642,11 +644,13 @@ def initCanvas():
 	
 #	inspectorCanvas.setRenderWorldOverlay(RESOLUTION,fov=90.0,distance=3.0)
 	inspectorCanvas.setRenderWorld(RESOLUTION,[1,viz.AUTO_COMPUTE])	
+	inspectorCanvas.setCursorVisible(viz.OFF)
 	
 	utilityCanvas.setRenderWorld(UTILITY_CANVAS_RES,[1,viz.AUTO_COMPUTE])
 	utilityCanvas.setPosition(0,0,0.5)
 	utilityCanvas.setEuler(0,0,0)
 	utilityCanvas.setCursorPosition([0.5,0.5])
+	utilityCanvas.visible(False)
 #	utilityCanvas.visible(True)
 #	utilityCanvas.setMouseStyle(viz.CANVAS_MOUSE_VISIBLE | viz.CANVAS_MOUSE_BUTTON)
 	
@@ -1697,7 +1701,10 @@ def onHighlightGrab():
 			
 #		if grabbedItem.getVisible() is False:
 #			grabbedItem.visible(True)
-			
+
+#		moveAction = vizact.moveTo(GRID_INTERSECT_POINT,time=0.1,interpolate=vizact.easeInExp)
+#		grabbedItem.addAction(moveAction)	
+		
 		grabbedItem.setPosition(GRID_INTERSECT_POINT)
 
 vizact.ontimer(0,onHighlightGrab)
@@ -2719,23 +2726,35 @@ def controllerRotateTruss(controller):
 		newRot = grabbedItem.getEuler()
 		if mathlite.math.fabs(newRot[2]+90) <= 5:	# Snap -90
 			newRot[2] = -90
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]-90) <= 5:	# Snap 90
 			newRot[2] = 90
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]+180) <= 5:	# Snap -180
 			newRot[2] = -180
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]-180) <= 5:	# Snap 180
 			newRot[2] = 180
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]) <= 5:
 			newRot[2] = 0
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]+45) <= 5:
 			newRot[2] = -45
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]-45) <= 5:
 			newRot[2] = 45
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]+135) <= 5:
 			newRot[2] = -135
+			grabbedItem.setEuler(newRot)
 		elif mathlite.math.fabs(newRot[2]-135) <= 5:
 			newRot[2] = 135
-		grabbedItem.setEuler(newRot)
+			grabbedItem.setEuler(newRot)
+		else:
+			# Create smooth rotate action
+			rotateAction = vizact.spinTo(euler=newRot,time=0.1,interpolate=vizact.easeInOutCubic)
+			grabbedItem.addAction(rotateAction)
 				
 		
 def controllerSlideRoot(controller):
@@ -3027,11 +3046,14 @@ def CanvasButtonTask(controller, canvas):
 			canvas.sendMouseButtonEvent(viz.MOUSEBUTTON_LEFT, viz.UP)
 		yield None
 		
-		
+import navigation
+navigator = navigation.Navigator()	
+	
 # Schedule tasks
 def MainTask():
 	global INITIALIZED	
 	global mainTask
+	global navigator
 	viewChangeSound.play()
 	
 	while True:		
@@ -3054,14 +3076,13 @@ def MainTask():
 		
 		# Define globals
 		global highlightTool
-		global navigator	
+#		global navigator	
 		
 		# Setup navigation
-		import navigation
 		steamVRConnected = navigation.checkSteamVR()
 #		joystickConnected = navigation.checkJoystick()
 #		oculusConnected = navigation.checkOculus()
-		
+				
 		navigator = None
 		
 		if steamVRConnected:
@@ -3154,7 +3175,7 @@ def MainTask():
 		rotationCanvas.setPosition([0,0.1,2], mode=viz.REL_PARENT)
 		
 		inspectorCanvas.setParent(navigator.getLeftController().model)
-		inspectorCanvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
+#		inspectorCanvas.setMouseStyle(viz.CANVAS_MOUSE_REAL)
 		inspectorCanvas.setPosition([0,0.1,0.01], mode=viz.REL_PARENT)
 		
 		# Setup utility canvas
