@@ -26,6 +26,7 @@ $RECYCLE.BIN/
 # Vizard Project Folders
 # =========================
 /[Rr]esources
+/[Bb]uilds
 
 # =========================
 # Operating System Files

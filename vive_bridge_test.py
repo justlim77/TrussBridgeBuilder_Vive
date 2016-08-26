@@ -5,7 +5,7 @@
 
 [ General ]
 
-[ LEFT TRIGGER ]---------Toggle Utility Menu
+[ LEFT MENU BUTTON ]---------Toggle Utility Menu
 
 [ Movement ]
 
@@ -36,10 +36,11 @@ FEEDBACK_MESSAGE = """<FEEDBACK>"""
 
 INITIAL_MESSAGE = """[ To begin building, switch to Build Mode ]"""
 
-VIEW_MESSAGE = """[  LEFT TRIGGER  ] Toggle Utility Menu"""
-
-SIDE_VIEW_MESSAGE = """[  LEFT TRIGGER  ] Toggle Main Menu
+VIEW_MESSAGE = """[  LEFT MENU BUTTON  ] Toggle Utility Menu
 [  RIGHT TRACKPAD  ] Move bridge towards or away""" 
+
+SIDE_VIEW_MESSAGE = """[  LEFT MENU BUTTON  ] Toggle Utility Menu"""
+
 MODE_MESSAGE = """<MODE>"""
 
 LOAD_MESSAGE = """Any unsaved progress will be lost! 
@@ -90,8 +91,8 @@ FOV = 35
 START_FOV = 100
 STENCIL = 8
 STEREOMODE = viz.STEREO_HORZ
-#FULLSCREEN = viz.FULLSCREEN
-FULLSCREEN = 0
+FULLSCREEN = viz.FULLSCREEN
+#FULLSCREEN = 0
 CLEAR_COLOR = viz.GRAY
 GRID_COLOR = viz.BLACK
 BUTTON_SCALE = 0.5
@@ -230,7 +231,7 @@ KEYS = { 'forward'	: 'w'
 
 # Initialize scene
 def initScene(res=RESOLUTION,quality=4,fov=FOV,stencil=8,stereoMode=viz.STEREO_HORZ,fullscreen=viz.FULLSCREEN,clearColor=viz.BLACK):
-	viz.setOption('viz.splashscreen', './resources/splash/splash.jpg')
+#	viz.setOption('viz.splashscreen', './resources/splash/splash.jpg')
 	viz.window.setSize(res)
 	viz.setMultiSample(quality)
 	viz.fov(fov)
@@ -466,11 +467,21 @@ thickness = orderPanel.addLabelItem('Thickness (mm)', thicknessDropList)
 #lengthTextbox.message('5')
 #length = orderPanel.addLabelItem('Length (m)', lengthTextbox)
 # Initialize lengthSlider with default value of 1
-lengthSlider = viz.addProgressBar('5.0')
-lenProgressPos = mathlite.getNewRange(5.0,LEN_MIN,LEN_MAX,0.0,1.0)
+lengthRow = vizdlg.Panel(align=vizdlg.ALIGN_RIGHT_BOTTOM, layout=vizdlg.LAYOUT_HORZ_BOTTOM,border=False,background=False,margin=0)
+lengthSlider = viz.addProgressBar('5.00')
+lenProgressPos = mathlite.getNewRange(5.00,LEN_MIN,LEN_MAX,0.0,1.0)
 lengthSlider.set(lenProgressPos)
 lengthSlider.setLength(ORDER_LABEL_LENGTH)
+lengthDown = viz.addButtonLabel('<')
+lengthUp = viz.addButtonLabel('>')
 length = orderPanel.addLabelItem('Length (m)', lengthSlider)
+#length = viz.addLabelItem('Length (m)', lengthSlider)
+#lengthRow.addItem(viz.addText('Length (m)'))
+#lengthRow.addItem(lengthSlider)
+#lengthRow.addItem(length)
+lengthRow.addItem(lengthDown)
+lengthRow.addItem(lengthUp)
+orderPanel.addItem(lengthRow)
 # Initialize quantitySlider with default value of 1
 quantitySlider = viz.addProgressBar('1')
 quantitySlider.setLength(ORDER_LABEL_LENGTH)
@@ -807,7 +818,7 @@ def addOrder(orderTab,orderList=inventory.OrderList(),orderRow=[],flag=''):
 #		lengthTextbox.message('')
 #		return
 	_length = mathlite.getNewRange(lengthSlider.get(),0.0,1.0,LEN_MIN,LEN_MAX)
-	_length = round(_length,1)
+	_length = round(_length,2)
 	_quantity = mathlite.getNewRange(quantitySlider.get(),0.0,1.0,QTY_MIN,QTY_MAX)
 	
 	setattr(newOrder, 'diameter', float(_diameter))
@@ -933,6 +944,7 @@ def createInventory():
 	
 #	toggleCanvas(inventoryCanvas, False)
 createInventory()
+inventoryCanvas.visible(False)
 
 
 def clearInventory():
@@ -2823,6 +2835,17 @@ def controllerSlideRoot(controller):
 			BOT_CACHED_Z = pos[2]
 		bridge_root.getGroup().setPosition(pos)
 
+def manualSliderAdjust(slider,increment):
+	pos = slider.get()
+	print pos
+	pos = float(mathlite.getNewRange(pos,0.0,1.0,LEN_MIN,LEN_MAX))
+	print 'converted pos', pos
+	pos += increment
+	pos = float(mathlite.getNewRange(pos,LEN_MIN,LEN_MAX,0.0,1.0))
+	slider.set(pos)
+	displayedQty = float(mathlite.getNewRange(pos,0.0,1.0,LEN_MIN,LEN_MAX))
+	displayedQty = round(displayedQty, 2)
+	slider.message(str(displayedQty))
 
 def onSlider(obj,pos):
 	global objToRotate
@@ -2840,7 +2863,7 @@ def onSlider(obj,pos):
 	if obj == lengthSlider:
 		lengthSlider.set(pos)
 		displayedQty = float(mathlite.getNewRange(pos,0.0,1.0,LEN_MIN,LEN_MAX))
-		displayedQty = round(displayedQty, 1)
+		displayedQty = round(displayedQty, 2)
 		lengthSlider.message(str(displayedQty))		
 
 def onList(e):
@@ -3267,6 +3290,9 @@ def MainTask():
 		vizact.onbuttondown ( buildModeButton, cycleMode, structures.Mode.Build )
 #		vizact.onbuttondown ( buildModeButton, cycleMode, vizact.choice([structures.Mode.Build,structures.Mode.Edit]) )		
 		vizact.onbuttondown ( toggleOriButton, cycleOrientation, vizact.choice([structures.Orientation.Top,structures.Orientation.Bottom,structures.Orientation.Side]) )			
+		
+		vizact.onbuttondown ( lengthDown, manualSliderAdjust, lengthSlider, -0.01 )
+		vizact.onbuttondown ( lengthUp, manualSliderAdjust, lengthSlider, 0.01 )
 		
 		vizact.ontimer(0,getIntersectInfo)
 		
