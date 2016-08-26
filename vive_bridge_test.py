@@ -675,16 +675,22 @@ initCanvas()
 #--Start at inventory tab
 menuTabPanel.selectPanel(2)
 
+cachedRot = None
 def inspectMember(obj):
+	global cachedRot
 	if obj is not None:	
+#		rotation = int(obj.getEuler()[2])
 		rotation = int(obj.getEuler()[2])
-		inspector.SetMessage(str(obj.length) + 'm x ' +
-								str(obj.diameter) + 'mm x ' +
-								str(obj.thickness) + 'mm x at ' +
-								str(rotation) + '°')
-#		inspectorCanvas.visible(True)
+		if(rotation != cachedRot):
+			cachedRot = rotation
+			inspector.SetMessage(str(obj.length) + 'm x ' +
+									str(obj.diameter) + 'mm x ' +
+									str(obj.thickness) + 'mm x at ' +
+									str(rotation) + '°')
+	#		inspectorCanvas.visible(True)
 	else:
 		inspector.SetMessage()
+		cachedRot = None
 		pass
 #		inspectorCanvas.visible(False)
 
@@ -1226,6 +1232,7 @@ def deleteTruss():
 	# Play warning sound
 	warningSound.play()
 
+
 def generateMembers(loading=False):
 	"""Create truss members based on order list"""
 	global BUILD_MEMBERS
@@ -1426,10 +1433,16 @@ def toggleIntersection(intersect):
 		for members in BUILD_MEMBERS:
 			members.enable(viz.INTERSECTION)
 			members.enable(viz.INTERSECT_INFO_OBJECT)
+#		for nodes in PROXY_NODES:
+#			nodes.enable(viz.INTERSECTION)
+#			nodes.enable(viz.INTERSECT_INFO_OBJECT)
 	else:
 		for members in BUILD_MEMBERS:
 			members.disable(viz.INTERSECTION)
 			members.disable(viz.INTERSECT_INFO_OBJECT)
+	for nodes in PROXY_NODES:
+		nodes.disable(viz.INTERSECTION)
+		nodes.disable(viz.INTERSECT_INFO_OBJECT)
 
 
 def toggleHighlightables(val=True):
@@ -1705,7 +1718,7 @@ def inspectGrabbedTruss():
 	else:
 #		inspectMember(None)
 		pass
-vizact.ontimer(0,inspectGrabbedTruss)
+#vizact.ontimer(0,inspectGrabbedTruss)
 
 def onHighlightGrab():
 	""" Clamp grabbed member to front glove position and grid z """
@@ -1730,6 +1743,7 @@ def onHighlightGrab():
 #		grabbedItem.addAction(moveAction)	
 		
 		grabbedItem.setPosition(GRID_INTERSECT_POINT)
+#		inspectMember(grabbedItem)
 vizact.ontimer(0,onHighlightGrab)
 
 
@@ -3123,7 +3137,7 @@ def MainTask():
 			viz.callback ( viz.SENSOR_DOWN_EVENT, onControllerButton )
 			vizact.onsensorup	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseUp,		navigator.KEYS['interact'] )
 			vizact.onsensordown	( navigator.getRightController(),	navigator.KEYS['interact'],	onMouseDown,	navigator.KEYS['interact'] )
-			vizact.onsensordown ( navigator.getRightController(),	navigator.KEYS['reorient'],	navigator.resetOrientation ) 
+			vizact.onsensordown ( navigator.getRightController(),	navigator.KEYS['reorient'],	toggleEnvironment ) 
 			vizact.onsensordown ( navigator.getLeftController(),	navigator.KEYS['reset'],	onKeyDown,		navigator.KEYS['reset'] )
 			vizact.onsensordown	( navigator.getLeftController(),	navigator.KEYS['interact'],	controllerDeleteTruss )			
 			vizact.onsensordown	( navigator.getLeftController(),	navigator.KEYS['utility'],	toggleUtility )
@@ -3261,8 +3275,7 @@ def MainTask():
 #		toggleUtility(True)
 		
 		runFeedbackTask('Initialized')
-		
-		
+				
 		INITIALIZED = True
 		mainTask.kill()
 				
